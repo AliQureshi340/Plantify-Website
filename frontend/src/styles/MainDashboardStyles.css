@@ -1,5 +1,45 @@
 /* PlantCare Pro - Professional CSS Styles */
+/* Button Base Styles - REQUIRED for visibility */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
 
+.btn-primary {
+  background-color: #16a34a;
+  color: white;
+}
+
+.btn-nursery {
+  background-color: #059669;
+  color: white;
+}
+
+.btn-secondary {
+  background-color: #4b5563;
+  color: white;
+}
+
+/* Flex utilities */
+.flex { display: flex; }
+.space-x-3 > * + * { margin-left: 12px; }
+
+/* Header */
+.header {
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 100;
+}
 /* Reset and Base Styles */
 * {
   margin: 0;

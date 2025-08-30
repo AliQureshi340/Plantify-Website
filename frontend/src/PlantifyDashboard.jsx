@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import PlantationDrives from './components/PlantationDrives.jsx';
 //import DriveDetail from './components/DriveDetail.jsx';
-import PlantifyShop from './components/shop/ShopComponents';
-import PlantIdentification from './components/plantid/PlantIdentification';
+//import PlantifyShop from './components/shop/ShopComponents';
+//import PlantIdentification from './components/plantid/PlantIdentification';
 //import { plantationDrivesData } from './data/plantationDrivesData';
 import PlantationMap from "./components/PlantationMap";
 import ForestRestoration from "./components/ForestRestoration";
@@ -199,16 +199,12 @@ const renderPageContent = () => {
  switch (currentPage) {
    case 'dashboard':
      return renderDashboard();
-   case 'plant-id':
-     return <PlantIdentification />;
    case 'disease-check':
      return renderDiseaseCheck();
 case 'plantation-drives':
   return renderPlantationDrives();
     case 'plantation-map':
   return <PlantationMap />;
-    case 'shop':
-     return <PlantifyShop />;
    case 'profile':
      return (
        <div>

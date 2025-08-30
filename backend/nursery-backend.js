@@ -1,56 +1,17 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-require('dotenv').config();
-
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
 
-// Create uploads directory if not exists
-if (!fs.existsSync('uploads')) {
-  fs.mkdirSync('uploads');
-}
-
-// MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/plantify-backend', {
+// MongoDB Connection
+mongoose.connect('mongodb://localhost:27017/nursery', {
   useNewUrlParser: true,
-  useUnifiedTopology: true,
+  useUnifiedTopology: true
 });
-
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', async () => {
-  console.log('Connected to MongoDB');
-  
-  // Drop the problematic index if it exists
-  try {
-    await mongoose.connection.db.collection('orders').dropIndex('orderNumber_1');
-    console.log('Dropped existing orderNumber index');
-  } catch (error) {
-    console.log('No existing orderNumber index to drop');
-  }
-});
-
-// Multer configuration
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage });
-
-// ==================== SCHEMAS ====================
 
 // Plant Schema
 const plantSchema = new mongoose.Schema({
@@ -65,15 +26,8 @@ const plantSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// Order Schema with unique order number
+// Order Schema
 const orderSchema = new mongoose.Schema({
-  orderNumber: { 
-    type: String, 
-    unique: true,
-    default: function() {
-      return 'ORD' + Date.now() + Math.floor(Math.random() * 10000);
-    }
-  },
   customerName: { type: String, required: true },
   customerEmail: { type: String, required: true },
   customerPhone: { type: String, required: true },
@@ -106,19 +60,7 @@ const Plant = mongoose.model('Plant', plantSchema);
 const Order = mongoose.model('Order', orderSchema);
 const Customer = mongoose.model('Customer', customerSchema);
 
-// ==================== BASIC ROUTES ====================
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Plantify MERN API is running' });
-});
-
-// Basic test route
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Backend is working!' });
-});
-
-// ==================== PLANT ROUTES ====================
+// PLANT ROUTES
 
 // Get all plants
 app.get('/api/plants', async (req, res) => {
@@ -141,14 +83,10 @@ app.get('/api/plants/:id', async (req, res) => {
   }
 });
 
-// Add new plant (with image upload)
-app.post('/api/plants', upload.single('image'), async (req, res) => {
+// Add new plant
+app.post('/api/plants', async (req, res) => {
   try {
-    const plantData = req.body;
-    if (req.file) {
-      plantData.image = `/uploads/${req.file.filename}`;
-    }
-    const plant = new Plant(plantData);
+    const plant = new Plant(req.body);
     await plant.save();
     res.status(201).json(plant);
   } catch (error) {
@@ -157,13 +95,9 @@ app.post('/api/plants', upload.single('image'), async (req, res) => {
 });
 
 // Update plant
-app.put('/api/plants/:id', upload.single('image'), async (req, res) => {
+app.put('/api/plants/:id', async (req, res) => {
   try {
-    const updateData = req.body;
-    if (req.file) {
-      updateData.image = `/uploads/${req.file.filename}`;
-    }
-    const plant = await Plant.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    const plant = await Plant.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!plant) return res.status(404).json({ error: 'Plant not found' });
     res.json(plant);
   } catch (error) {
@@ -182,7 +116,7 @@ app.delete('/api/plants/:id', async (req, res) => {
   }
 });
 
-// ==================== ORDER ROUTES ====================
+// ORDER ROUTES
 
 // Get all orders
 app.get('/api/orders', async (req, res) => {
@@ -219,7 +153,7 @@ app.post('/api/orders', async (req, res) => {
       }
     }
     
-    // Create order with auto-generated orderNumber
+    // Create order
     const order = new Order({
       customerName,
       customerEmail,
@@ -290,7 +224,7 @@ app.delete('/api/orders/:id', async (req, res) => {
   }
 });
 
-// ==================== CUSTOMER ROUTES ====================
+// CUSTOMER ROUTES
 
 // Get all customers
 app.get('/api/customers', async (req, res) => {
@@ -335,7 +269,7 @@ app.delete('/api/customers/:id', async (req, res) => {
   }
 });
 
-// ==================== DASHBOARD/ANALYTICS ROUTES ====================
+// DASHBOARD/ANALYTICS ROUTES
 
 // Get dashboard stats
 app.get('/api/dashboard/stats', async (req, res) => {
@@ -414,7 +348,7 @@ app.get('/api/reports/sales', async (req, res) => {
   }
 });
 
-// ==================== STORE FRONT API ====================
+// STORE FRONT API (for customers)
 
 // Get plants for store (with filtering)
 app.get('/api/store/plants', async (req, res) => {
@@ -476,8 +410,6 @@ app.get('/api/store/categories', async (req, res) => {
   }
 });
 
-// ==================== UTILITY ROUTES ====================
-
 // Initialize with sample data (run once)
 app.post('/api/init-sample-data', async (req, res) => {
   try {
@@ -495,7 +427,7 @@ app.post('/api/init-sample-data', async (req, res) => {
         stock: 25,
         discount: 10,
         description: 'Easy care indoor plant perfect for beginners',
-        image: '/uploads/snake-plant.jpg'
+        image: 'https://example.com/snake-plant.jpg'
       },
       {
         name: 'Rose Bush',
@@ -504,7 +436,7 @@ app.post('/api/init-sample-data', async (req, res) => {
         stock: 15,
         discount: 0,
         description: 'Beautiful flowering rose bush',
-        image: '/uploads/rose.jpg'
+        image: 'https://example.com/rose.jpg'
       },
       {
         name: 'Mint Plant',
@@ -513,25 +445,7 @@ app.post('/api/init-sample-data', async (req, res) => {
         stock: 50,
         discount: 5,
         description: 'Fresh mint for cooking and tea',
-        image: '/uploads/mint.jpg'
-      },
-      {
-        name: 'Aloe Vera',
-        category: 'Succulents',
-        price: 450,
-        stock: 30,
-        discount: 0,
-        description: 'Medicinal succulent plant',
-        image: '/uploads/aloe.jpg'
-      },
-      {
-        name: 'Mango Tree',
-        category: 'Outdoor',
-        price: 2500,
-        stock: 8,
-        discount: 15,
-        description: 'Fruit bearing mango tree',
-        image: '/uploads/mango.jpg'
+        image: 'https://example.com/mint.jpg'
       }
     ];
     
@@ -543,19 +457,8 @@ app.post('/api/init-sample-data', async (req, res) => {
         address: 'Lahore, Punjab',
         totalOrders: 2,
         totalSpent: 3000
-      },
-      {
-        name: 'Fatima Ali',
-        email: 'fatima@example.com',
-        phone: '03009876543',
-        address: 'Karachi, Sindh',
-        totalOrders: 1,
-        totalSpent: 1500
       }
     ];
-    
-    const plants = await Plant.insertMany(samplePlants);
-    await Customer.insertMany(sampleCustomers);
     
     const sampleOrders = [
       {
@@ -564,7 +467,7 @@ app.post('/api/init-sample-data', async (req, res) => {
         customerPhone: '03001234567',
         customerAddress: 'Lahore, Punjab',
         items: [
-          { plantId: plants[0]._id, plantName: 'Snake Plant', quantity: 2, price: 1500 }
+          { plantName: 'Snake Plant', quantity: 2, price: 1500 }
         ],
         total: 3000,
         status: 'completed',
@@ -572,6 +475,8 @@ app.post('/api/init-sample-data', async (req, res) => {
       }
     ];
     
+    await Plant.insertMany(samplePlants);
+    await Customer.insertMany(sampleCustomers);
     await Order.insertMany(sampleOrders);
     
     res.json({ message: 'Sample data created successfully' });
@@ -580,9 +485,9 @@ app.post('/api/init-sample-data', async (req, res) => {
   }
 });
 
-// Start server
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/api/health`);
-  console.log(`Nursery Dashboard API ready!`);
+  console.log(`Nursery server running on port ${PORT}`);
 });
+
+module.exports = app;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ShoppingCart, Search, Filter, Star, Heart, Plus, Minus, X, Check, Truck, MapPin } from 'lucide-react';
-
+import { useAuth } from './AuthSystem';
 // Move CheckoutModal outside component to prevent re-renders
 const CheckoutModal = ({ 
   showCheckout, 

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from './AuthSystem'; // Fixed import
+
 /* eslint-disable no-restricted-globals */
 const NurseryDashboard = () => {
+  const { authFetch } = useAuth(); // Get authFetch for authenticated API calls
   const [activeTab, setActiveTab] = useState('dashboard');
   const [plants, setPlants] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -11,8 +14,6 @@ const NurseryDashboard = () => {
     name: '', price: '', stock: '', category: '', image: '', description: '', discount: 0
   });
   const [notification, setNotification] = useState(null);
-
-  const API_BASE = 'http://localhost:5000';
 
   // Show notification
   const showNotification = (message, type = 'success') => {
@@ -29,41 +30,46 @@ const NurseryDashboard = () => {
 
   const fetchPlants = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/plants`);
+      const response = await fetch('http://localhost:5000/api/plants'); // Plants are public
       const data = await response.json();
-      setPlants(data);
+      setPlants(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching plants:', error);
       showNotification('Failed to fetch plants', 'error');
+      setPlants([]);
     }
   };
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/orders`);
+      const response = await authFetch('/api/orders'); // Use authFetch for protected route
       const data = await response.json();
-      setOrders(data);
+      setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching orders:', error);
       showNotification('Failed to fetch orders', 'error');
+      setOrders([]);
     }
   };
 
   const fetchCustomers = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/customers`);
+      const response = await authFetch('/api/admin/users'); // Use authFetch for protected route
       const data = await response.json();
-      setCustomers(data);
+      // Filter only customers (role: 'user')
+      const customerData = Array.isArray(data) ? data.filter(user => user.role === 'user') : [];
+      setCustomers(customerData);
     } catch (error) {
       console.error('Error fetching customers:', error);
       showNotification('Failed to fetch customers', 'error');
+      setCustomers([]);
     }
   };
 
   const handleAddPlant = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${API_BASE}/api/plants`, {
+      const response = await authFetch('/api/plants', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newPlant)
@@ -85,7 +91,7 @@ const NurseryDashboard = () => {
 
   const handleUpdatePlant = async (id, updatedPlant) => {
     try {
-      const response = await fetch(`${API_BASE}/api/plants/${id}`, {
+      const response = await authFetch(`/api/plants/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedPlant)
@@ -108,7 +114,7 @@ const NurseryDashboard = () => {
     if (!confirm('Are you sure you want to delete this plant?')) return;
     
     try {
-      const response = await fetch(`${API_BASE}/api/plants/${id}`, { method: 'DELETE' });
+      const response = await authFetch(`/api/plants/${id}`, { method: 'DELETE' });
       if (response.ok) {
         fetchPlants();
         showNotification('Plant deleted successfully!');
@@ -124,7 +130,7 @@ const NurseryDashboard = () => {
 
   const updateOrderStatus = async (orderId, status) => {
     try {
-      const response = await fetch(`${API_BASE}/api/orders/${orderId}`, {
+      const response = await authFetch(`/api/orders/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
@@ -143,22 +149,50 @@ const NurseryDashboard = () => {
   };
 
   const generateReport = () => {
-    const totalSales = orders.filter(order => order.status === 'completed').reduce((sum, order) => sum + order.total, 0);
+    // Safety checks to prevent errors
+    if (!orders || !Array.isArray(orders)) {
+      return {
+        totalSales: 0,
+        totalOrders: 0,
+        pendingOrders: 0,
+        completedOrders: 0,
+        lowStock: 0,
+        totalCustomers: 0,
+        topSellingPlants: [],
+        averageOrderValue: 0
+      };
+    }
+
+    if (!plants || !Array.isArray(plants)) {
+      return {
+        totalSales: 0,
+        totalOrders: orders.length,
+        pendingOrders: orders.filter(order => order.status === 'pending').length,
+        completedOrders: orders.filter(order => order.status === 'completed').length,
+        lowStock: 0,
+        totalCustomers: customers?.length || 0,
+        topSellingPlants: [],
+        averageOrderValue: 0
+      };
+    }
+
+    const completedOrders = orders.filter(order => order.status === 'completed');
+    const totalSales = completedOrders.reduce((sum, order) => sum + order.total, 0);
     const totalOrders = orders.length;
     const pendingOrders = orders.filter(order => order.status === 'pending').length;
-    const completedOrders = orders.filter(order => order.status === 'completed').length;
+    const completedOrdersCount = completedOrders.length;
     const lowStock = plants.filter(plant => plant.stock < 10);
     const topSellingPlants = plants.sort((a, b) => (b.sold || 0) - (a.sold || 0)).slice(0, 5);
-    
-    return { 
-      totalSales, 
-      totalOrders, 
+
+    return {
+      totalSales,
+      totalOrders,
       pendingOrders,
-      completedOrders,
-      lowStock: lowStock.length, 
-      totalCustomers: customers.length,
+      completedOrders: completedOrdersCount,
+      lowStock: lowStock.length,
+      totalCustomers: customers?.length || 0,
       topSellingPlants,
-      averageOrderValue: totalOrders > 0 ? totalSales / completedOrders : 0
+      averageOrderValue: completedOrdersCount > 0 ? totalSales / completedOrdersCount : 0
     };
   };
 
@@ -186,177 +220,198 @@ const NurseryDashboard = () => {
   );
 
   // Dashboard Overview with enhanced metrics
-  const renderDashboard = () => (
-    <div style={{ padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>Nursery Dashboard Overview</h2>
-        <button 
-          onClick={() => window.open('/shop', '_blank')}
-          style={{ 
-            padding: '10px 20px', 
-            background: '#28a745', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          🛍️ View Live Shop
-        </button>
-      </div>
-      
-      {/* Key Metrics */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-        <div style={{ background: 'linear-gradient(135deg, #28a745, #20c997)', padding: '20px', borderRadius: '12px', textAlign: 'center', color: 'white' }}>
-          <h3>Total Revenue</h3>
-          <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0' }}>Rs {report.totalSales.toLocaleString()}</p>
-          <small>From {report.completedOrders} completed orders</small>
-        </div>
-        <div style={{ background: 'linear-gradient(135deg, #007bff, #6610f2)', padding: '20px', borderRadius: '12px', textAlign: 'center', color: 'white' }}>
-          <h3>Active Orders</h3>
-          <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0' }}>{report.pendingOrders}</p>
-          <small>Pending processing</small>
-        </div>
-        <div style={{ background: 'linear-gradient(135deg, #dc3545, #e83e8c)', padding: '20px', borderRadius: '12px', textAlign: 'center', color: 'white' }}>
-          <h3>Low Stock Alert</h3>
-          <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0' }}>{report.lowStock}</p>
-          <small>Items need restocking</small>
-        </div>
-        <div style={{ background: 'linear-gradient(135deg, #6f42c1, #e83e8c)', padding: '20px', borderRadius: '12px', textAlign: 'center', color: 'white' }}>
-          <h3>Total Customers</h3>
-          <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0' }}>{report.totalCustomers}</p>
-          <small>Registered buyers</small>
-        </div>
-        <div style={{ background: 'linear-gradient(135deg, #fd7e14, #ffc107)', padding: '20px', borderRadius: '12px', textAlign: 'center', color: 'white' }}>
-          <h3>Avg Order Value</h3>
-          <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0' }}>Rs {Math.round(report.averageOrderValue).toLocaleString()}</p>
-          <small>Per completed order</small>
-        </div>
-        <div style={{ background: 'linear-gradient(135deg, #20c997, #17a2b8)', padding: '20px', borderRadius: '12px', textAlign: 'center', color: 'white' }}>
-          <h3>Total Plants</h3>
-          <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0' }}>{plants.length}</p>
-          <small>In inventory</small>
-        </div>
-      </div>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
-        {/* Recent Orders */}
-        <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '12px', padding: '20px' }}>
-          <h3 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            📦 Recent Orders
-          </h3>
-          {orders.slice(0, 5).map(order => (
-            <div key={order._id} style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <p style={{ margin: '0 0 4px 0', fontWeight: '600' }}>#{order._id.slice(-6)}</p>
-                  <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#666' }}>
-                    {order.customerName} • Rs {order.total.toLocaleString()}
-                  </p>
-                  <span style={{ 
-                    padding: '2px 8px', 
-                    borderRadius: '12px',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    background: order.status === 'completed' ? '#d4edda' : 
-                               order.status === 'pending' ? '#fff3cd' : 
-                               order.status === 'processing' ? '#d1ecf1' : '#f8d7da',
-                    color: order.status === 'completed' ? '#155724' : 
-                           order.status === 'pending' ? '#856404' : 
-                           order.status === 'processing' ? '#0c5460' : '#721c24'
-                  }}>
-                    {order.status.toUpperCase()}
-                  </span>
-                </div>
-                <button 
-                  onClick={() => setSelectedOrder(order)}
-                  style={{ 
-                    padding: '6px 12px', 
-                    background: '#007bff', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  View
-                </button>
-              </div>
-            </div>
-          ))}
+  const renderDashboard = () => {
+    // Add safety check for orders.slice
+    const recentOrders = (orders || []).slice(0, 5);
+    const lowStockPlants = (plants || []).filter(plant => plant.stock < 10).slice(0, 5);
+
+    return (
+      <div style={{ padding: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2>Nursery Dashboard Overview</h2>
+          <button 
+            onClick={() => window.open('/shop', '_blank')}
+            style={{ 
+              padding: '10px 20px', 
+              background: '#28a745', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            🛍️ View Live Shop
+          </button>
         </div>
         
-        {/* Low Stock Alert */}
-        <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '12px', padding: '20px' }}>
-          <h3 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            ⚠️ Low Stock Alert
-          </h3>
-          {plants.filter(plant => plant.stock < 10).slice(0, 5).map(plant => (
-            <div key={plant._id} style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <p style={{ margin: '0 0 4px 0', fontWeight: '600' }}>{plant.name}</p>
-                  <p style={{ margin: '0', fontSize: '14px', color: '#dc3545', fontWeight: '600' }}>
-                    Only {plant.stock} left
-                  </p>
-                </div>
-                <button 
-                  onClick={() => setEditingPlant(plant)}
-                  style={{ 
-                    padding: '6px 12px', 
-                    background: '#ffc107', 
-                    color: 'black', 
-                    border: 'none', 
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Restock
-                </button>
-              </div>
-            </div>
-          ))}
+        {/* Key Metrics */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+          <div style={{ background: 'linear-gradient(135deg, #28a745, #20c997)', padding: '20px', borderRadius: '12px', textAlign: 'center', color: 'white' }}>
+            <h3>Total Revenue</h3>
+            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0' }}>Rs {report.totalSales.toLocaleString()}</p>
+            <small>From {report.completedOrders} completed orders</small>
+          </div>
+          <div style={{ background: 'linear-gradient(135deg, #007bff, #6610f2)', padding: '20px', borderRadius: '12px', textAlign: 'center', color: 'white' }}>
+            <h3>Active Orders</h3>
+            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0' }}>{report.pendingOrders}</p>
+            <small>Pending processing</small>
+          </div>
+          <div style={{ background: 'linear-gradient(135deg, #dc3545, #e83e8c)', padding: '20px', borderRadius: '12px', textAlign: 'center', color: 'white' }}>
+            <h3>Low Stock Alert</h3>
+            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0' }}>{report.lowStock}</p>
+            <small>Items need restocking</small>
+          </div>
+          <div style={{ background: 'linear-gradient(135deg, #6f42c1, #e83e8c)', padding: '20px', borderRadius: '12px', textAlign: 'center', color: 'white' }}>
+            <h3>Total Customers</h3>
+            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0' }}>{report.totalCustomers}</p>
+            <small>Registered buyers</small>
+          </div>
+          <div style={{ background: 'linear-gradient(135deg, #fd7e14, #ffc107)', padding: '20px', borderRadius: '12px', textAlign: 'center', color: 'white' }}>
+            <h3>Avg Order Value</h3>
+            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0' }}>Rs {Math.round(report.averageOrderValue).toLocaleString()}</p>
+            <small>Per completed order</small>
+          </div>
+          <div style={{ background: 'linear-gradient(135deg, #20c997, #17a2b8)', padding: '20px', borderRadius: '12px', textAlign: 'center', color: 'white' }}>
+            <h3>Total Plants</h3>
+            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0' }}>{plants.length}</p>
+            <small>In inventory</small>
+          </div>
         </div>
-
-        {/* Top Selling Plants */}
-        <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '12px', padding: '20px' }}>
-          <h3 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            🏆 Top Sellers
-          </h3>
-          {report.topSellingPlants.map((plant, index) => (
-            <div key={plant._id} style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ 
-                    background: index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : '#f8f9fa',
-                    color: index < 3 ? 'white' : 'black',
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '12px',
-                    fontWeight: 'bold'
-                  }}>
-                    {index + 1}
-                  </span>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+          {/* Recent Orders */}
+          <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '12px', padding: '20px' }}>
+            <h3 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              📦 Recent Orders
+            </h3>
+            {recentOrders.map(order => (
+              <div key={order._id} style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <p style={{ margin: '0 0 4px 0', fontWeight: '600' }}>#{order._id.slice(-6)}</p>
+                    <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#666' }}>
+                      {order.customerName} • Rs {order.total.toLocaleString()}
+                    </p>
+                    <span style={{ 
+                      padding: '2px 8px', 
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      background: order.status === 'completed' ? '#d4edda' : 
+                                 order.status === 'pending' ? '#fff3cd' : 
+                                 order.status === 'processing' ? '#d1ecf1' : '#f8d7da',
+                      color: order.status === 'completed' ? '#155724' : 
+                             order.status === 'pending' ? '#856404' : 
+                             order.status === 'processing' ? '#0c5460' : '#721c24'
+                    }}>
+                      {order.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedOrder(order)}
+                    style={{ 
+                      padding: '6px 12px', 
+                      background: '#007bff', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    View
+                  </button>
+                </div>
+              </div>
+            ))}
+            {recentOrders.length === 0 && (
+              <p style={{ textAlign: 'center', color: '#666', fontStyle: 'italic' }}>
+                No orders yet
+              </p>
+            )}
+          </div>
+          
+          {/* Low Stock Alert */}
+          <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '12px', padding: '20px' }}>
+            <h3 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              ⚠️ Low Stock Alert
+            </h3>
+            {lowStockPlants.map(plant => (
+              <div key={plant._id} style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <p style={{ margin: '0 0 4px 0', fontWeight: '600' }}>{plant.name}</p>
-                    <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
-                      {plant.sold || 0} sold
+                    <p style={{ margin: '0', fontSize: '14px', color: '#dc3545', fontWeight: '600' }}>
+                      Only {plant.stock} left
                     </p>
+                  </div>
+                  <button 
+                    onClick={() => setEditingPlant(plant)}
+                    style={{ 
+                      padding: '6px 12px', 
+                      background: '#ffc107', 
+                      color: 'black', 
+                      border: 'none', 
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Restock
+                  </button>
+                </div>
+              </div>
+            ))}
+            {lowStockPlants.length === 0 && (
+              <p style={{ textAlign: 'center', color: '#666', fontStyle: 'italic' }}>
+                All plants well stocked
+              </p>
+            )}
+          </div>
+
+          {/* Top Selling Plants */}
+          <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '12px', padding: '20px' }}>
+            <h3 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              🏆 Top Sellers
+            </h3>
+            {report.topSellingPlants.map((plant, index) => (
+              <div key={plant._id} style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ 
+                      background: index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : '#f8f9fa',
+                      color: index < 3 ? 'white' : 'black',
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                      fontWeight: 'bold'
+                    }}>
+                      {index + 1}
+                    </span>
+                    <div>
+                      <p style={{ margin: '0 0 4px 0', fontWeight: '600' }}>{plant.name}</p>
+                      <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
+                        {plant.sold || 0} sold
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+            {report.topSellingPlants.length === 0 && (
+              <p style={{ textAlign: 'center', color: '#666', fontStyle: 'italic' }}>
+                No sales data yet
+              </p>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Enhanced Plants Management
   const renderPlants = () => (
@@ -518,6 +573,11 @@ const NurseryDashboard = () => {
             })}
           </tbody>
         </table>
+        {plants.length === 0 && (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+            <p>No plants in inventory. Add your first plant to get started!</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -817,11 +877,16 @@ const NurseryDashboard = () => {
             ))}
           </tbody>
         </table>
+        {orders.length === 0 && (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+            <p>No orders received yet. Start by adding plants to your inventory!</p>
+          </div>
+        )}
       </div>
     </div>
   );
 
-  // Rest of the render methods (keeping existing code)
+  // Enhanced Customers Management
   const renderCustomers = () => (
     <div style={{ padding: '20px' }}>
       <h2>Customer Management</h2>
@@ -832,8 +897,8 @@ const NurseryDashboard = () => {
               <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>Name</th>
               <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>Email</th>
               <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>Phone</th>
-              <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>Orders</th>
-              <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>Total Spent</th>
+              <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>City</th>
+              <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>Joined</th>
               <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>Actions</th>
             </tr>
           </thead>
@@ -842,9 +907,11 @@ const NurseryDashboard = () => {
               <tr key={customer._id}>
                 <td style={{ padding: '12px', border: '1px solid #ddd' }}>{customer.name}</td>
                 <td style={{ padding: '12px', border: '1px solid #ddd' }}>{customer.email}</td>
-                <td style={{ padding: '12px', border: '1px solid #ddd' }}>{customer.phone}</td>
-                <td style={{ padding: '12px', border: '1px solid #ddd' }}>{customer.totalOrders}</td>
-                <td style={{ padding: '12px', border: '1px solid #ddd' }}>Rs {customer.totalSpent}</td>
+                <td style={{ padding: '12px', border: '1px solid #ddd' }}>{customer.phone || 'N/A'}</td>
+                <td style={{ padding: '12px', border: '1px solid #ddd' }}>{customer.city || 'N/A'}</td>
+                <td style={{ padding: '12px', border: '1px solid #ddd' }}>
+                  {new Date(customer.createdAt).toLocaleDateString()}
+                </td>
                 <td style={{ padding: '12px', border: '1px solid #ddd' }}>
                   <button style={{ padding: '5px 10px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>
                     View Profile
@@ -854,6 +921,11 @@ const NurseryDashboard = () => {
             ))}
           </tbody>
         </table>
+        {customers.length === 0 && (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+            <p>No customers registered yet.</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -864,7 +936,7 @@ const NurseryDashboard = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '30px' }}>
         <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '8px', padding: '20px' }}>
           <h3>Monthly Sales</h3>
-          <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#28a745' }}>Rs {report.totalSales}</p>
+          <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#28a745' }}>Rs {report.totalSales.toLocaleString()}</p>
         </div>
         <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '8px', padding: '20px' }}>
           <h3>Total Orders</h3>
@@ -872,18 +944,22 @@ const NurseryDashboard = () => {
         </div>
         <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '8px', padding: '20px' }}>
           <h3>Average Order Value</h3>
-          <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#6f42c1' }}>Rs {Math.round(report.averageOrderValue)}</p>
+          <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#6f42c1' }}>Rs {Math.round(report.averageOrderValue).toLocaleString()}</p>
         </div>
       </div>
       
       <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '8px', padding: '20px' }}>
         <h3>Top Selling Plants</h3>
-        {plants.slice(0, 10).map(plant => (
-          <div key={plant._id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #eee' }}>
-            <span>{plant.name}</span>
-            <span>{plant.sold || 0} units sold</span>
-          </div>
-        ))}
+        {plants.length > 0 ? (
+          plants.slice(0, 10).map(plant => (
+            <div key={plant._id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #eee' }}>
+              <span>{plant.name}</span>
+              <span>{plant.sold || 0} units sold</span>
+            </div>
+          ))
+        ) : (
+          <p style={{ textAlign: 'center', color: '#666', fontStyle: 'italic' }}>No plants in inventory yet.</p>
+        )}
       </div>
     </div>
   );
@@ -980,7 +1056,7 @@ const NurseryDashboard = () => {
     )
   );
 
-  // Edit Plant Modal (keeping existing code)
+  // Edit Plant Modal
   const renderEditModal = () => {
     if (!editingPlant) return null;
     
@@ -1026,7 +1102,7 @@ const NurseryDashboard = () => {
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Discount (%):</label>
               <input 
                 type="number" 
-                value={editingPlant.discount}
+                value={editingPlant.discount || 0}
                 onChange={(e) => setEditingPlant({...editingPlant, discount: e.target.value})}
                 style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
               />

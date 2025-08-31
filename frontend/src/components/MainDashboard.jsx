@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import '../styles/MainDashboardStyles.css';
 import '../styles/MainDashboardAnimations.js';
 import { useNavigate } from 'react-router-dom';
+import { AuthModal, useAuth } from './AuthSystem';
 import { 
   Leaf, 
   Camera, 
@@ -10,7 +11,6 @@ import {
   Trophy, 
   Bell,
   User,
-  Shield,
   Store,
   LogIn,
   ArrowRight,
@@ -25,16 +25,26 @@ import {
 
 const MainDashboard = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, user, logout } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalType, setAuthModalType] = useState('login');
+  const [selectedUserType, setSelectedUserType] = useState('user'); // Track which type was selected
 
-const handleLoginClick = (type) => {
-  if (type === 'admin') {
-    navigate('/admin');
-  } else if (type === 'nursery') {
-    navigate('/nursery');
-  } else {
-    navigate('/user');
-  }
-};
+  const handleLoginClick = (type) => {
+    if (isAuthenticated) {
+      // User is already logged in, redirect based on their role or selected type
+      if (user.role === 'nursery' || type === 'nursery') {
+        navigate('/nursery');
+      } else {
+        navigate('/user');
+      }
+    } else {
+      // User not logged in, show auth modal with proper type
+      setSelectedUserType(type); // Set the user type first
+      setAuthModalType(type === 'nursery' ? 'register' : 'login');
+      setShowAuthModal(true);
+    }
+  };
 
   const features = [
     {
@@ -123,27 +133,81 @@ const handleLoginClick = (type) => {
               <h1 className="text-2xl font-bold text-gray-900">Plantify</h1>
             </div>
             <div className="flex space-x-3">
-              <button
-                onClick={() => handleLoginClick('user')}
-                className="btn btn-primary flex items-center space-x-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
-              >
-                <User className="h-4 w-4" />
-                <span>User Login</span>
-              </button>
-              <button
-                onClick={() => handleLoginClick('nursery')}
-                className="btn btn-nursery flex items-center space-x-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
-              >
-                <Store className="h-4 w-4" />
-                <span>Nursery Login</span>
-              </button>
-              <button
-                onClick={() => handleLoginClick('admin')}
-                className="btn btn-secondary flex items-center space-x-2 px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700 transition-colors"
-              >
-                <Shield className="h-4 w-4" />
-                <span>Admin Login</span>
-              </button>
+              {isAuthenticated ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <span style={{ color: '#666' }}>Welcome, {user.name}</span>
+                  <button
+                    onClick={() => {
+                      if (user.role === 'nursery') navigate('/nursery');
+                      else navigate('/user');
+                    }}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Go to Dashboard
+                  </button>
+                  <button
+                    onClick={logout}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => handleLoginClick('user')}
+                    className="btn btn-primary flex items-center space-x-2 px-4 py-2 rounded-lg"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 16px',
+                      backgroundColor: '#16a34a',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: '500'
+                    }}
+                  >
+                    <User className="h-4 w-4" />
+                    <span>User Login</span>
+                  </button>
+                  <button
+                    onClick={() => handleLoginClick('nursery')}
+                    className="btn btn-nursery flex items-center space-x-2 px-4 py-2 rounded-lg"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 16px',
+                      backgroundColor: '#059669',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: '500'
+                    }}
+                  >
+                    <Store className="h-4 w-4" />
+                    <span>Nursery Login</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -162,14 +226,40 @@ const handleLoginClick = (type) => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button
               onClick={() => handleLoginClick('user')}
-              className="btn btn-primary hero-cta px-8 py-4 rounded-lg text-lg font-semibold flex items-center space-x-2 bg-green-600 text-white hover:bg-green-700"
+              className="btn btn-primary hero-cta px-8 py-4 rounded-lg text-lg font-semibold flex items-center space-x-2"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '16px 32px',
+                backgroundColor: '#16a34a',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '18px',
+                fontWeight: '600'
+              }}
             >
               <span>Start as User</span>
               <ArrowRight className="h-5 w-5" />
             </button>
             <button
               onClick={() => handleLoginClick('nursery')}
-              className="btn btn-nursery hero-cta px-8 py-4 rounded-lg text-lg font-semibold flex items-center space-x-2 bg-emerald-600 text-white hover:bg-emerald-700"
+              className="btn btn-nursery hero-cta px-8 py-4 rounded-lg text-lg font-semibold flex items-center space-x-2"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '16px 32px',
+                backgroundColor: '#059669',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '18px',
+                fontWeight: '600'
+              }}
             >
               <span>Join as Nursery</span>
               <Store className="h-5 w-5" />
@@ -181,7 +271,7 @@ const handleLoginClick = (type) => {
       {/* Stats Section */}
       <section className="py-16 bg-white stats-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-8">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px' }}>
             {stats.map((stat, index) => {
               const Icon = stat.icon;
               return (
@@ -205,16 +295,44 @@ const handleLoginClick = (type) => {
             <h3 className="text-3xl font-bold text-gray-900 mb-4">For Plant Lovers & Gardeners</h3>
             <p className="text-xl text-gray-600">Comprehensive tools to help you become a better gardener</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '25px' }}>
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <div key={index} className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow feature-card">
-                  <div className={`${feature.color} w-12 h-12 rounded-lg flex items-center justify-center mb-4`}>
-                    <Icon className="h-6 w-6 text-white feature-icon" />
+                <div key={index} style={{
+                  background: 'white',
+                  padding: '24px',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-5px)';
+                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                }}>
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '8px',
+                    backgroundColor: feature.color === 'bg-green-500' ? '#22c55e' :
+                                     feature.color === 'bg-blue-500' ? '#3b82f6' :
+                                     feature.color === 'bg-orange-500' ? '#f97316' :
+                                     feature.color === 'bg-purple-500' ? '#a855f7' :
+                                     feature.color === 'bg-yellow-500' ? '#eab308' : '#ef4444',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '16px'
+                  }}>
+                    <Icon className="h-6 w-6 text-white" />
                   </div>
-                  <h4 className="text-xl font-semibold text-gray-900 mb-2 feature-title">{feature.title}</h4>
-                  <p className="text-gray-600">{feature.description}</p>
+                  <h4 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>{feature.title}</h4>
+                  <p style={{ color: '#6b7280' }}>{feature.description}</p>
                 </div>
               );
             })}
@@ -223,22 +341,48 @@ const handleLoginClick = (type) => {
       </section>
 
       {/* Nursery Features Section */}
-      <section className="py-20 bg-emerald-50 nursery-features-section">
+      <section style={{ padding: '80px 0', backgroundColor: '#ecfdf5' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h3 className="text-3xl font-bold text-gray-900 mb-4">For Nursery Owners & Plant Retailers</h3>
             <p className="text-xl text-gray-600">Powerful tools to manage your nursery business efficiently</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '25px' }}>
             {nurseryFeatures.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <div key={index} className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow nursery-feature-card">
-                  <div className={`${feature.color} w-12 h-12 rounded-lg flex items-center justify-center mb-4`}>
-                    <Icon className="h-6 w-6 text-white nursery-feature-icon" />
+                <div key={index} style={{
+                  background: 'white',
+                  padding: '24px',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-5px)';
+                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                }}>
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '8px',
+                    backgroundColor: feature.color === 'bg-emerald-500' ? '#10b981' :
+                                     feature.color === 'bg-indigo-500' ? '#6366f1' :
+                                     feature.color === 'bg-pink-500' ? '#ec4899' : '#06b6d4',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '16px'
+                  }}>
+                    <Icon className="h-6 w-6 text-white" />
                   </div>
-                  <h4 className="text-xl font-semibold text-gray-900 mb-2 nursery-feature-title">{feature.title}</h4>
-                  <p className="text-gray-600">{feature.description}</p>
+                  <h4 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>{feature.title}</h4>
+                  <p style={{ color: '#6b7280' }}>{feature.description}</p>
                 </div>
               );
             })}
@@ -246,7 +390,20 @@ const handleLoginClick = (type) => {
           <div className="text-center mt-12">
             <button
               onClick={() => handleLoginClick('nursery')}
-              className="btn bg-emerald-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-emerald-700 transition-colors flex items-center space-x-2 mx-auto"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '16px 32px',
+                backgroundColor: '#059669',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '18px',
+                fontWeight: '600',
+                margin: '0 auto'
+              }}
             >
               <Store className="h-5 w-5" />
               <span>Start Your Nursery Dashboard</span>
@@ -255,61 +412,103 @@ const handleLoginClick = (type) => {
         </div>
       </section>
 
-      {/* Three-Panel CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 multi-cta-section">
+      {/* Two-Panel CTA Section */}
+      <section style={{ 
+        padding: '80px 0', 
+        background: 'linear-gradient(to right, #16a34a, #059669)' 
+      }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h3 className="text-3xl font-bold text-white mb-4">Choose Your Plant Journey</h3>
-            <p className="text-xl text-green-100">Join our community in different ways</p>
+            <p className="text-xl text-green-100">Join our community</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '25px' }}>
             {/* User Panel */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 text-center hover:bg-white/20 transition-all cta-panel">
-              <User className="h-16 w-16 text-white mx-auto mb-4" />
-              <h4 className="text-2xl font-bold text-white mb-4">Plant Enthusiast</h4>
-              <p className="text-green-100 mb-6">
+            <div style={{
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '12px',
+              padding: '32px',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.3s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+            }}>
+              <User style={{ width: '64px', height: '64px', color: 'white', margin: '0 auto 16px' }} />
+              <h4 style={{ fontSize: '24px', fontWeight: 'bold', color: 'white', marginBottom: '16px' }}>Plant Enthusiast</h4>
+              <p style={{ color: 'rgba(255,255,255,0.8)', marginBottom: '24px' }}>
                 Track your plants, identify species, join community drives, and shop from local nurseries
               </p>
               <button
                 onClick={() => handleLoginClick('user')}
-                className="btn bg-white text-green-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors w-full"
+                style={{
+                  width: '100%',
+                  padding: '12px 24px',
+                  backgroundColor: 'white',
+                  color: '#16a34a',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}
               >
                 Join as User
               </button>
             </div>
 
             {/* Nursery Panel */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 text-center hover:bg-white/20 transition-all cta-panel">
-              <Store className="h-16 w-16 text-white mx-auto mb-4" />
-              <h4 className="text-2xl font-bold text-white mb-4">Nursery Owner</h4>
-              <p className="text-green-100 mb-6">
+            <div style={{
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '12px',
+              padding: '32px',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.3s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+            }}>
+              <Store style={{ width: '64px', height: '64px', color: 'white', margin: '0 auto 16px' }} />
+              <h4 style={{ fontSize: '24px', fontWeight: 'bold', color: 'white', marginBottom: '16px' }}>Nursery Owner</h4>
+              <p style={{ color: 'rgba(255,255,255,0.8)', marginBottom: '24px' }}>
                 Manage inventory, process orders, track sales, and grow your plant retail business
               </p>
               <button
                 onClick={() => handleLoginClick('nursery')}
-                className="btn bg-emerald-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-600 transition-colors w-full"
+                style={{
+                  width: '100%',
+                  padding: '12px 24px',
+                  backgroundColor: '#059669',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}
               >
                 Join as Nursery
-              </button>
-            </div>
-
-            {/* Admin Panel */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 text-center hover:bg-white/20 transition-all cta-panel">
-              <Shield className="h-16 w-16 text-white mx-auto mb-4" />
-              <h4 className="text-2xl font-bold text-white mb-4">Administrator</h4>
-              <p className="text-green-100 mb-6">
-                Manage the platform, oversee operations, and ensure smooth functioning of the ecosystem
-              </p>
-              <button
-                onClick={() => handleLoginClick('admin')}
-                className="btn bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors w-full"
-              >
-                Admin Access
               </button>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Auth Modal - Now properly passes the selectedUserType */}
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+        initialMode={authModalType}
+        userType={selectedUserType} // This is the key fix - passing the selected user type
+      />
     </div>
   );
 };

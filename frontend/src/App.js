@@ -3,8 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, ProtectedRoute } from './components/AuthSystem';
 import PlantifyDashboard from './PlantifyDashboard';
 import PlantShop from './components/PlantShop';
-import PlantationDrives from './components/PlantationDrives';
-import PlantationMap from './components/PlantationMap';
 import MainDashboard from './components/MainDashboard';
 import NurseryDashboard from './components/NurseryDashboard';
 import ForestRestoration from './components/ForestRestoration';
@@ -28,22 +26,7 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/plantation-drives" 
-              element={
-                <ProtectedRoute>
-                  <PlantationDrives />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/plantation-map" 
-              element={
-                <ProtectedRoute>
-                  <PlantationMap />
-                </ProtectedRoute>
-              } 
-            />
+            
             <Route 
               path="/forest-restoration" 
               element={

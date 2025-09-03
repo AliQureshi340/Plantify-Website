@@ -41,34 +41,37 @@ const PlantifyDashboard = () => {
     return <span className={className}>{icons[name] || '•'}</span>;
   };
 
-  const renderDashboard = () => (
-    <div className="page-content">
-      <ForestRestoration />
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-        <div className="bg-white rounded-lg shadow-md p-6 text-center">
-          <div className="text-3xl text-green-600 mb-3">📷</div>
-          <h3 className="text-xl font-bold text-gray-800">42</h3>
-          <p className="text-gray-600">Plants Identified</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-6 text-center">
-          <div className="text-3xl text-blue-600 mb-3">🌳</div>
-          <h3 className="text-xl font-bold text-gray-800">15</h3>
-          <p className="text-gray-600">Drives Joined</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-6 text-center">
-          <div className="text-3xl text-yellow-600 mb-3">🏆</div>
-          <h3 className="text-xl font-bold text-gray-800">1,240</h3>
-          <p className="text-gray-600">Points Earned</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-6 text-center">
-          <div className="text-3xl text-red-600 mb-3">💚</div>
-          <h3 className="text-xl font-bold text-gray-800">28</h3>
-          <p className="text-gray-600">Plants Saved</p>
-        </div>
-      </div>
+const renderDashboard = () => (
+  <div className="page-content min-h-screen">
+    {/* ForestRestoration - The blue "Get a MOQAH" section */}
+    <div>
+  <ForestRestoration />
+</div>
+
+    
+    {/* Stats Cards */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8 mb-16">
+      {/* Your existing stat cards */}
     </div>
-  );
+
+    {/* How it Works Section */}
+    <section className="py-16 bg-white rounded-xl mb-16">
+      {/* How it works content */}
+    </section>
+
+    
+
+    {/* Transparent Pricing Section */}
+    <section className="py-16 bg-white rounded-xl mb-16">
+      {/* Pricing content */}
+    </section>
+
+    {/* Footer */}
+    <footer className="bg-slate-900 text-white py-16 rounded-xl">
+      {/* Footer content */}
+    </footer>
+  </div>
+);
 
   const renderProfile = () => (
     <div className="page-content">
@@ -136,89 +139,61 @@ const PlantifyDashboard = () => {
   };
 
   // Only render the dashboard wrapper when not in shop mode
-  if (currentPage === 'shop') {
-    return <PlantShop />;
-  }
+ 
 
   return (
-    <div className="dashboard-container min-h-screen bg-gray-100">
-      <header className="bg-white shadow-md px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center">
-          <button
-            onClick={toggleSidebar}
-            className="text-gray-600 hover:text-gray-800 mr-4"
-          >
-            <span className="text-xl">☰</span>
-          </button>
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-green-600 rounded mr-3 flex items-center justify-center">
-              <IconComponent name="Leaf" className="text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-800">Plantify</span>
-          </div>
-        </div>
-        
-        <div className="flex-1 max-w-md mx-8">
-          <div className="relative">
-            <IconComponent name="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search plants, drives, products..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <IconComponent name="Bell" className="text-gray-600 text-xl" />
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              3
-            </span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-              <IconComponent name="User" className="text-gray-600" />
-            </div>
-            <span className="text-gray-800">{user?.name || 'Ali Qureshi'}</span>
-            <span className="text-gray-600">▼</span>
-          </div>
-        </div>
-      </header>
-
-      <div className="flex">
-        <aside className={`bg-white shadow-md transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-16'}`}>
-          <div className="p-4">
-            <h3 className={`font-bold text-gray-800 ${sidebarOpen ? 'block' : 'hidden'}`}>
-              Dashboard
-            </h3>
-          </div>
-          
-          <ul className="space-y-1">
-            {menuItems.map((item) => (
-              <li key={item.id}>
-                <button
-                  onClick={() => navigateToPage(item.id)}
-                  className={`w-full flex items-center px-4 py-3 text-left hover:bg-gray-100 transition-colors ${
-                    currentPage === item.id ? 'bg-green-100 border-r-4 border-green-600' : ''
-                  }`}
-                >
-                  <IconComponent name={item.icon} className={`text-gray-600 ${sidebarOpen ? 'mr-3' : 'mx-auto'}`} />
-                  {sidebarOpen && (
-                    <span className={`text-gray-800 ${currentPage === item.id ? 'font-semibold' : ''}`}>
-                      {item.label}
-                    </span>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </aside>
-
-        <main className="flex-1 p-6">
-          {renderPageContent()}
-        </main>
+    <div className="dashboard-container min-h-screen bg-gray-100 w-full m-0 p-0">
+     <header className="bg-white shadow-md px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+  <div className="flex items-center">
+    <div className="flex items-center">
+      <div className="w-8 h-8 bg-green-600 rounded mr-3 flex items-center justify-center">
+        <IconComponent name="Leaf" className="text-white" />
       </div>
+      <span className="text-xl font-bold text-gray-800">Plantify</span>
+    </div>
+  </div>
+  
+  {/* Center Navigation */}
+<nav className="flex space-x-8">
+  <button 
+    onClick={() => navigateToPage('dashboard')}
+    className={`transition-colors font-medium ${
+      currentPage === 'dashboard' ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
+    }`}
+  >
+    Dashboard
+  </button>
+  <button 
+    onClick={() => navigateToPage('shop')}
+    className={`transition-colors font-medium ${
+      currentPage === 'shop' ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
+    }`}
+  >
+    Plant Store
+  </button>
+  <button 
+    onClick={() => navigateToPage('profile')}
+    className={`transition-colors font-medium ${
+      currentPage === 'profile' ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
+    }`}
+  >
+    Profile
+  </button>
+</nav>
+  
+  <div className="flex items-center space-x-4">
+    <button className="text-gray-600 hover:text-green-600 transition-colors font-medium">Support</button>
+    <button className="text-gray-600 hover:text-green-600 transition-colors font-medium">Sign In</button>
+    <button className="bg-green-600 text-white px-6 py-2 rounded-full hover:bg-green-700 transition-all duration-200 font-medium shadow-sm">
+      Start Plant Journey
+    </button>
+  </div>
+</header>
+
+      {/* Main Content */}
+     <main className="w-full m-0 p-0" style={{minHeight: '100vh', marginTop: '0px'}}>
+        {renderPageContent()}
+      </main>
     </div>
   );
 };

@@ -288,129 +288,99 @@ const MainDashboard = () => {
         </div>
       </section>
 
-      {/* User Features Section */}
-      <section className="py-20 features-section">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h3 className="text-3xl font-bold text-gray-900 mb-4">For Plant Lovers & Gardeners</h3>
-            <p className="text-xl text-gray-600">Comprehensive tools to help you become a better gardener</p>
+    {/* User Features Section */}
+<section className="py-20 features-section">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="text-center mb-16">
+      <h3 className="text-3xl font-bold text-gray-900 mb-4">For Plant Lovers & Gardeners</h3>
+      <p className="text-xl text-gray-600">Comprehensive tools to help you become a better gardener</p>
+    </div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '25px' }}>
+      {features.map((feature, index) => {
+        const Icon = feature.icon;
+        return (
+          <div key={index} className="feature-card">
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '8px',
+              backgroundColor: feature.color === 'bg-green-500' ? '#22c55e' :
+                               feature.color === 'bg-blue-500' ? '#3b82f6' :
+                               feature.color === 'bg-orange-500' ? '#f97316' :
+                               feature.color === 'bg-purple-500' ? '#a855f7' :
+                               feature.color === 'bg-yellow-500' ? '#eab308' : '#ef4444',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '16px'
+            }}>
+              <Icon className="feature-icon h-6 w-6 text-white" />
+            </div>
+           <h4 className="feature-title" style={{ fontSize: '20px', marginBottom: '8px' }}>{feature.title}</h4>
+<p>{feature.description}</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '25px' }}>
-            {features.map((feature, index) => {
-              const Icon = feature.icon;
-              return (
-                <div key={index} style={{
-                  background: 'white',
-                  padding: '24px',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-5px)';
-                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-                }}>
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '8px',
-                    backgroundColor: feature.color === 'bg-green-500' ? '#22c55e' :
-                                     feature.color === 'bg-blue-500' ? '#3b82f6' :
-                                     feature.color === 'bg-orange-500' ? '#f97316' :
-                                     feature.color === 'bg-purple-500' ? '#a855f7' :
-                                     feature.color === 'bg-yellow-500' ? '#eab308' : '#ef4444',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: '16px'
-                  }}>
-                    <Icon className="h-6 w-6 text-white" />
-                  </div>
-                  <h4 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>{feature.title}</h4>
-                  <p style={{ color: '#6b7280' }}>{feature.description}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+        );
+      })}
+    </div>
+  </div>
+</section>
 
       {/* Nursery Features Section */}
-      <section style={{ padding: '80px 0', backgroundColor: '#ecfdf5' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h3 className="text-3xl font-bold text-gray-900 mb-4">For Nursery Owners & Plant Retailers</h3>
-            <p className="text-xl text-gray-600">Powerful tools to manage your nursery business efficiently</p>
+<section style={{ padding: '80px 0', backgroundColor: '#ecfdf5' }}>
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="text-center mb-16">
+      <h3 className="text-3xl font-bold text-gray-900 mb-4">For Nursery Owners & Plant Retailers</h3>
+      <p className="text-xl text-gray-600">Powerful tools to manage your nursery business efficiently</p>
+    </div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '25px' }}>
+      {nurseryFeatures.map((feature, index) => {
+        const Icon = feature.icon;
+        return (
+          <div key={index} className="feature-card">
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '8px',
+              backgroundColor: feature.color === 'bg-emerald-500' ? '#10b981' :
+                               feature.color === 'bg-indigo-500' ? '#6366f1' :
+                               feature.color === 'bg-pink-500' ? '#ec4899' : '#06b6d4',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '16px'
+            }}>
+              <Icon className="feature-icon h-6 w-6 text-white" />
+            </div>
+            <h4 className="feature-title" style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>{feature.title}</h4>
+            <p style={{ color: '#6b7280' }}>{feature.description}</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '25px' }}>
-            {nurseryFeatures.map((feature, index) => {
-              const Icon = feature.icon;
-              return (
-                <div key={index} style={{
-                  background: 'white',
-                  padding: '24px',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-5px)';
-                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-                }}>
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '8px',
-                    backgroundColor: feature.color === 'bg-emerald-500' ? '#10b981' :
-                                     feature.color === 'bg-indigo-500' ? '#6366f1' :
-                                     feature.color === 'bg-pink-500' ? '#ec4899' : '#06b6d4',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: '16px'
-                  }}>
-                    <Icon className="h-6 w-6 text-white" />
-                  </div>
-                  <h4 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>{feature.title}</h4>
-                  <p style={{ color: '#6b7280' }}>{feature.description}</p>
-                </div>
-              );
-            })}
-          </div>
-          <div className="text-center mt-12">
-            <button
-              onClick={() => handleLoginClick('nursery')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '16px 32px',
-                backgroundColor: '#059669',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '18px',
-                fontWeight: '600',
-                margin: '0 auto'
-              }}
-            >
-              <Store className="h-5 w-5" />
-              <span>Start Your Nursery Dashboard</span>
-            </button>
-          </div>
-        </div>
-      </section>
+        );
+      })}
+    </div>
+    <div className="text-center mt-12">
+      <button
+        onClick={() => handleLoginClick('nursery')}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '16px 32px',
+          backgroundColor: '#059669',
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          fontSize: '18px',
+          fontWeight: '600',
+          margin: '0 auto'
+        }}
+      >
+        <Store className="h-5 w-5" />
+        <span>Start Your Nursery Dashboard</span>
+      </button>
+    </div>
+  </div>
+</section>
 
       {/* Two-Panel CTA Section */}
       <section style={{ 

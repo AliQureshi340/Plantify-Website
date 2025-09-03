@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { User, Mail, Lock, Phone, MapPin, Upload, Eye, EyeOff, X } from 'lucide-react';
+import { User, Mail, Lock, Phone, MapPin, Upload, Eye, EyeOff, X, Send, Shield, CheckCircle, Clock } from 'lucide-react';
 
 // ==================== AUTH CONTEXT ====================
 
@@ -113,26 +113,42 @@ export const AuthProvider = ({ children }) => {
     return response;
   };
 
+  // Send OTP function
+  const sendOTP = async (email, userType) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, role: userType })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send OTP');
+      }
+
+      return { success: true, message: data.message };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
+
   // Auth functions
-  const login = async (email, password, userType) => {
+  const login = async (email, password, userType, otp) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       
       const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, expectedRole: userType })
+        body: JSON.stringify({ email, password, expectedRole: userType, otp })
       });
 
       const data = await response.json();
       
       if (!response.ok) {
         throw new Error(data.error || 'Login failed');
-      }
-
-      // Verify user type matches
-      if (data.user.role !== userType) {
-        throw new Error(`This account is registered as ${data.user.role}, not ${userType}`);
       }
 
       dispatch({
@@ -207,10 +223,10 @@ export const AuthProvider = ({ children }) => {
 
       dispatch({
         type: 'LOAD_USER',
-        payload: { token: state.token, user: data }
+        payload: { token: state.token, user: data.user }
       });
 
-      return { success: true, user: data };
+      return { success: true, user: data.user };
     } catch (error) {
       return { success: false, error: error.message };
     }
@@ -223,6 +239,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateProfile,
     authFetch,
+    sendOTP,
     clearError: () => dispatch({ type: 'CLEAR_ERROR' })
   };
 
@@ -241,12 +258,14 @@ export const useAuth = () => {
   return context;
 };
 
-// ==================== LOGIN/REGISTER MODAL ====================
+// ==================== IMPROVED LOGIN/REGISTER MODAL ====================
 
 export const AuthModal = ({ isOpen, onClose, initialMode = 'login', userType = 'user' }) => {
   const [mode, setMode] = React.useState(initialMode);
   const [showPassword, setShowPassword] = React.useState(false);
   const [currentUserType, setCurrentUserType] = React.useState(userType);
+  const [loginStep, setLoginStep] = React.useState(1); // 1: credentials, 2: OTP
+  const [otpCountdown, setOtpCountdown] = React.useState(0);
   const [formData, setFormData] = React.useState({
     name: '',
     email: '',
@@ -257,12 +276,25 @@ export const AuthModal = ({ isOpen, onClose, initialMode = 'login', userType = '
     city: '',
     postalCode: '',
     role: userType,
-    profileImage: null
+    profileImage: null,
+    otp: ''
   });
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [successMessage, setSuccessMessage] = React.useState('');
 
-  const { login, register } = useAuth();
+  const { login, register, sendOTP } = useAuth();
+
+  // Countdown timer for OTP
+  React.useEffect(() => {
+    let timer;
+    if (otpCountdown > 0) {
+      timer = setInterval(() => {
+        setOtpCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [otpCountdown]);
 
   // Update form data when userType changes
   React.useEffect(() => {
@@ -283,11 +315,50 @@ export const AuthModal = ({ isOpen, onClose, initialMode = 'login', userType = '
         city: '',
         postalCode: '',
         role: currentUserType,
-        profileImage: null
+        profileImage: null,
+        otp: ''
       });
       setError('');
+      setSuccessMessage('');
+      setLoginStep(1);
+      setOtpCountdown(0);
     }
   }, [isOpen, mode, currentUserType]);
+
+  const handleSendOTP = async () => {
+    if (!formData.email || !formData.password) {
+      setError('Please enter email and password first');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccessMessage('');
+
+    const result = await sendOTP(formData.email, currentUserType);
+    if (result.success) {
+      setLoginStep(2);
+      setSuccessMessage(`OTP sent to ${formData.email}! Please check your inbox.`);
+      setOtpCountdown(300); // 5 minutes countdown
+      setError('');
+    } else {
+      setError(result.error);
+    }
+    setLoading(false);
+  };
+
+  const handleResendOTP = async () => {
+    setLoading(true);
+    const result = await sendOTP(formData.email, currentUserType);
+    if (result.success) {
+      setSuccessMessage('New OTP sent! Please check your inbox.');
+      setOtpCountdown(300);
+      setError('');
+    } else {
+      setError(result.error);
+    }
+    setLoading(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -296,22 +367,41 @@ export const AuthModal = ({ isOpen, onClose, initialMode = 'login', userType = '
 
     try {
       if (mode === 'login') {
-        const result = await login(formData.email, formData.password, currentUserType);
-        if (result.success) {
-          onClose();
-          // Redirect based on role
-          if (result.user.role === 'nursery') {
-            window.location.href = '/nursery';
-          } else {
-            window.location.href = '/user';
-          }
+        if (loginStep === 1) {
+          // First step: Send OTP
+          await handleSendOTP();
+          return;
         } else {
-          setError(result.error);
+          // Second step: Verify OTP and login
+          if (!formData.otp || formData.otp.length !== 6) {
+            setError('Please enter a valid 6-digit OTP');
+            setLoading(false);
+            return;
+          }
+
+          const result = await login(formData.email, formData.password, currentUserType, formData.otp);
+          if (result.success) {
+            onClose();
+            // Redirect based on role
+            if (result.user.role === 'nursery') {
+              window.location.href = '/nursery';
+            } else {
+              window.location.href = '/user';
+            }
+          } else {
+            setError(result.error);
+          }
         }
       } else {
-        // Validate passwords match
+        // Registration
         if (formData.password !== formData.confirmPassword) {
           setError('Passwords do not match');
+          setLoading(false);
+          return;
+        }
+
+        if (formData.password.length < 6) {
+          setError('Password must be at least 6 characters long');
           setLoading(false);
           return;
         }
@@ -345,308 +435,283 @@ export const AuthModal = ({ isOpen, onClose, initialMode = 'login', userType = '
     if (error) setError('');
   };
 
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 2000
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        padding: '30px',
-        borderRadius: '12px',
-        width: '90%',
-        maxWidth: mode === 'register' ? '600px' : '400px',
-        maxHeight: '90vh',
-        overflowY: 'auto'
-      }}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>
+            <h2 className="text-2xl font-bold text-gray-800">
               {mode === 'login' ? 'Welcome Back' : 'Create Account'}
             </h2>
-            <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '14px' }}>
+            <p className="text-sm text-gray-600">
               {currentUserType === 'nursery' ? 'Nursery Owner Portal' : 'Plant Enthusiast Portal'}
             </p>
           </div>
           <button 
             onClick={onClose}
-            style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}
+            className="text-gray-500 hover:text-gray-700 text-2xl"
           >
             <X />
           </button>
         </div>
 
         {/* User Type Indicator */}
-        <div style={{
-          backgroundColor: currentUserType === 'nursery' ? '#ecfdf5' : '#f0f9ff',
-          padding: '10px 15px',
-          borderRadius: '8px',
-          marginBottom: '20px',
-          textAlign: 'center',
-          border: `2px solid ${currentUserType === 'nursery' ? '#059669' : '#0ea5e9'}`
-        }}>
+        <div className={`p-3 rounded-lg mb-6 text-center border-2 ${
+          currentUserType === 'nursery' 
+            ? 'bg-green-50 border-green-500 text-green-700' 
+            : 'bg-blue-50 border-blue-500 text-blue-700'
+        }`}>
           <strong>
-            {currentUserType === 'nursery' ? 'Nursery Owner Registration/Login' : 'Plant Enthusiast Registration/Login'}
+            {currentUserType === 'nursery' 
+              ? '🌿 Nursery Owner Portal' 
+              : '🌱 Plant Enthusiast Portal'}
           </strong>
         </div>
 
+        {/* Login Step Indicator */}
+        {mode === 'login' && (
+          <div className="flex items-center justify-center mb-6">
+            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold mr-2 ${
+              loginStep >= 1 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
+            }`}>
+              1
+            </div>
+            <div className={`w-12 h-1 rounded mr-2 ${loginStep >= 2 ? 'bg-green-500' : 'bg-gray-200'}`}></div>
+            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
+              loginStep >= 2 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
+            }`}>
+              2
+            </div>
+            <span className="ml-3 text-sm text-gray-600">
+              {loginStep === 1 ? 'Enter Credentials' : 'Verify OTP'}
+            </span>
+          </div>
+        )}
+
+        {/* Success Message */}
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 text-sm flex items-center">
+            <CheckCircle className="w-4 h-4 mr-2" />
+            {successMessage}
+          </div>
+        )}
+
         {/* Error Message */}
         {error && (
-          <div style={{
-            backgroundColor: '#fee',
-            color: '#c33',
-            padding: '10px',
-            borderRadius: '6px',
-            marginBottom: '20px',
-            fontSize: '14px'
-          }}>
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
             {error}
           </div>
         )}
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
+          {/* Registration Fields */}
           {mode === 'register' && (
             <>
-              {/* Name */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {currentUserType === 'nursery' ? 'Nursery Name *' : 'Full Name *'}
                 </label>
-                <div style={{ position: 'relative' }}>
-                  <User style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} size={18} />
+                <div className="relative">
+                  <User className="absolute left-3 top-3.5 text-gray-400" size={18} />
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
                     required
-                    style={{
-                      width: '100%',
-                      padding: '12px 12px 12px 45px',
-                      border: '2px solid #e1e5e9',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      outline: 'none'
-                    }}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     placeholder={currentUserType === 'nursery' ? 'Enter nursery name' : 'Enter your full name'}
                   />
                 </div>
               </div>
 
-              {/* Phone */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Phone Number *</label>
-                <div style={{ position: 'relative' }}>
-                  <Phone style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} size={18} />
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3.5 text-gray-400" size={18} />
                   <input
                     type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
                     required
-                    style={{
-                      width: '100%',
-                      padding: '12px 12px 12px 45px',
-                      border: '2px solid #e1e5e9',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      outline: 'none'
-                    }}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     placeholder="03001234567"
                   />
                 </div>
               </div>
 
-              {/* Address Fields */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '15px', marginBottom: '20px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
-                    {currentUserType === 'nursery' ? 'Nursery Address' : 'Address'}
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <MapPin style={{ position: 'absolute', left: '12px', top: '12px', color: '#666' }} size={18} />
-                    <textarea
-                      name="address"
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      rows="3"
-                      style={{
-                        width: '100%',
-                        padding: '12px 12px 12px 45px',
-                        border: '2px solid #e1e5e9',
-                        borderRadius: '8px',
-                        fontSize: '16px',
-                        outline: 'none',
-                        resize: 'vertical'
-                      }}
-                      placeholder={currentUserType === 'nursery' ? 'Nursery location' : 'Your address'}
-                    />
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>City</label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '2px solid #e1e5e9',
-                        borderRadius: '8px',
-                        fontSize: '16px',
-                        outline: 'none'
-                      }}
-                      placeholder="City"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Postal Code</label>
-                    <input
-                      type="text"
-                      name="postalCode"
-                      value={formData.postalCode}
-                      onChange={handleInputChange}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '2px solid #e1e5e9',
-                        borderRadius: '8px',
-                        fontSize: '16px',
-                        outline: 'none'
-                      }}
-                      placeholder="12345"
-                    />
-                  </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-3 text-gray-400" size={18} />
+                  <textarea
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    rows="2"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                    placeholder={currentUserType === 'nursery' ? 'Nursery location' : 'Your address'}
+                  />
                 </div>
               </div>
 
-              {/* Profile Image */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+                  <input
+                    type="text"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="City"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
+                  <input
+                    type="text"
+                    name="postalCode"
+                    value={formData.postalCode}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="12345"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {currentUserType === 'nursery' ? 'Nursery Logo (Optional)' : 'Profile Picture (Optional)'}
                 </label>
-                <div style={{ position: 'relative' }}>
-                  <Upload style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} size={18} />
+                <div className="relative">
+                  <Upload className="absolute left-3 top-3.5 text-gray-400" size={18} />
                   <input
                     type="file"
                     name="profileImage"
                     accept="image/*"
                     onChange={handleInputChange}
-                    style={{
-                      width: '100%',
-                      padding: '12px 12px 12px 45px',
-                      border: '2px solid #e1e5e9',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      outline: 'none'
-                    }}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                 </div>
               </div>
             </>
           )}
 
-          {/* Email */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Email Address *</label>
-            <div style={{ position: 'relative' }}>
-              <Mail style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} size={18} />
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                required
-                style={{
-                  width: '100%',
-                  padding: '12px 12px 12px 45px',
-                  border: '2px solid #e1e5e9',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  outline: 'none'
-                }}
-                placeholder="your@email.com"
-              />
+          {/* Email Field */}
+          {(mode === 'register' || loginStep === 1) && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3.5 text-gray-400" size={18} />
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                  disabled={mode === 'login' && loginStep === 2}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-50"
+                  placeholder="your@email.com"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Password */}
-          <div style={{ marginBottom: mode === 'register' ? '20px' : '30px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Password *</label>
-            <div style={{ position: 'relative' }}>
-              <Lock style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} size={18} />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                required
-                style={{
-                  width: '100%',
-                  padding: '12px 45px 12px 45px',
-                  border: '2px solid #e1e5e9',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  outline: 'none'
-                }}
-                placeholder="Enter password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: '#666'
-                }}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+          {/* Password Field */}
+          {(mode === 'register' || loginStep === 1) && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3.5 text-gray-400" size={18} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required
+                  disabled={mode === 'login' && loginStep === 2}
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-50"
+                  placeholder="Enter password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
+                  disabled={mode === 'login' && loginStep === 2}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Confirm Password (Register only) */}
           {mode === 'register' && (
-            <div style={{ marginBottom: '30px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Confirm Password *</label>
-              <div style={{ position: 'relative' }}>
-                <Lock style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} size={18} />
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password *</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3.5 text-gray-400" size={18} />
                 <input
                   type="password"
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   required
-                  style={{
-                    width: '100%',
-                    padding: '12px 12px 12px 45px',
-                    border: '2px solid #e1e5e9',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    outline: 'none'
-                  }}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   placeholder="Confirm password"
                 />
+              </div>
+            </div>
+          )}
+
+          {/* OTP Input (Login Step 2) */}
+          {mode === 'login' && loginStep === 2 && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Enter 6-Digit OTP Code *</label>
+              <div className="relative">
+                <Shield className="absolute left-3 top-3.5 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  name="otp"
+                  value={formData.otp}
+                  onChange={handleInputChange}
+                  required
+                  maxLength="6"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-center text-xl font-mono tracking-widest"
+                  placeholder="000000"
+                />
+              </div>
+              
+              {/* OTP Timer and Resend */}
+              <div className="text-center mt-4">
+                {otpCountdown > 0 ? (
+                  <p className="text-sm text-gray-600 flex items-center justify-center">
+                    <Clock className="w-4 h-4 mr-1" />
+                    OTP expires in: <span className="font-mono font-bold text-red-600 ml-1">{formatTime(otpCountdown)}</span>
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    disabled={loading}
+                    className="text-sm text-green-600 hover:text-green-700 underline disabled:opacity-50 flex items-center justify-center"
+                  >
+                    <Send className="w-4 h-4 mr-1" />
+                    Resend OTP
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -655,25 +720,42 @@ export const AuthModal = ({ isOpen, onClose, initialMode = 'login', userType = '
           <button
             type="submit"
             disabled={loading}
-            style={{
-              width: '100%',
-              padding: '14px',
-              backgroundColor: loading ? '#ccc' : (currentUserType === 'nursery' ? '#059669' : '#28a745'),
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              marginBottom: '20px'
-            }}
+            className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              currentUserType === 'nursery' 
+                ? 'bg-green-600 hover:bg-green-700' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
           >
-            {loading ? 'Please wait...' : (mode === 'login' ? 'Sign In' : 'Create Account')}
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Please wait...
+              </div>
+            ) : mode === 'login' ? 
+              (loginStep === 1 ? 'Send OTP to Email' : 'Verify OTP & Login') : 
+              'Create Account'
+            }
           </button>
 
+          {/* Back button for OTP step */}
+          {mode === 'login' && loginStep === 2 && (
+            <button
+              type="button"
+              onClick={() => {
+                setLoginStep(1);
+                setOtpCountdown(0);
+                setSuccessMessage('');
+                setFormData(prev => ({ ...prev, otp: '' }));
+              }}
+              className="w-full mt-3 py-2 px-4 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              ← Back to Credentials
+            </button>
+          )}
+
           {/* Switch Mode */}
-          <div style={{ textAlign: 'center' }}>
-            <span style={{ color: '#666' }}>
+          <div className="text-center mt-6">
+            <span className="text-gray-600">
               {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
             </span>
             <button
@@ -681,6 +763,9 @@ export const AuthModal = ({ isOpen, onClose, initialMode = 'login', userType = '
               onClick={() => {
                 setMode(mode === 'login' ? 'register' : 'login');
                 setError('');
+                setSuccessMessage('');
+                setLoginStep(1);
+                setOtpCountdown(0);
                 setFormData({
                   name: '',
                   email: '',
@@ -691,17 +776,13 @@ export const AuthModal = ({ isOpen, onClose, initialMode = 'login', userType = '
                   city: '',
                   postalCode: '',
                   role: currentUserType,
-                  profileImage: null
+                  profileImage: null,
+                  otp: ''
                 });
               }}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: currentUserType === 'nursery' ? '#059669' : '#28a745',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                textDecoration: 'underline'
-              }}
+              className={`font-semibold underline hover:no-underline ${
+                currentUserType === 'nursery' ? 'text-green-600' : 'text-blue-600'
+              }`}
             >
               {mode === 'login' ? 'Sign up here' : 'Sign in here'}
             </button>
@@ -719,46 +800,29 @@ export const ProtectedRoute = ({ children, requiredRole = null, fallback = null 
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        fontSize: '18px'
-      }}>
-        Loading...
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
 
   if (!isAuthenticated) {
     return fallback || (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        textAlign: 'center'
-      }}>
-        <h2>Access Denied</h2>
-        <p>Please login to access this page</p>
+      <div className="flex flex-col justify-center items-center h-screen text-center">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h2>
+        <p className="text-gray-600">Please login to access this page</p>
       </div>
     );
   }
 
   if (requiredRole && user.role !== requiredRole) {
     return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        textAlign: 'center'
-      }}>
-        <h2>Unauthorized</h2>
-        <p>You don't have permission to access this page</p>
+      <div className="flex flex-col justify-center items-center h-screen text-center">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Unauthorized</h2>
+        <p className="text-gray-600">You don't have permission to access this page</p>
       </div>
     );
   }
@@ -798,39 +862,24 @@ export const UserProfile = () => {
   };
 
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', padding: '20px' }}>
-      <div style={{
-        backgroundColor: 'white',
-        padding: '30px',
-        borderRadius: '12px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-          <h2 style={{ margin: 0 }}>My Profile</h2>
-          <div style={{ display: 'flex', gap: '10px' }}>
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-800">My Profile</h2>
+          <div className="flex gap-3">
             <button
               onClick={() => setIsEditing(!isEditing)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: isEditing ? '#6c757d' : '#007bff',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer'
-              }}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                isEditing 
+                  ? 'bg-gray-500 hover:bg-gray-600 text-white' 
+                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+              }`}
             >
               {isEditing ? 'Cancel' : 'Edit Profile'}
             </button>
             <button
               onClick={logout}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer'
-              }}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
             >
               Logout
             </button>
@@ -838,96 +887,67 @@ export const UserProfile = () => {
         </div>
 
         {message && (
-          <div style={{
-            padding: '10px',
-            marginBottom: '20px',
-            borderRadius: '6px',
-            backgroundColor: message.includes('success') ? '#d4edda' : '#f8d7da',
-            color: message.includes('success') ? '#155724' : '#721c24',
-            fontSize: '14px'
-          }}>
+          <div className={`p-4 mb-6 rounded-lg ${
+            message.includes('success') 
+              ? 'bg-green-50 border border-green-200 text-green-700' 
+              : 'bg-red-50 border border-red-200 text-red-700'
+          }`}>
             {message}
           </div>
         )}
 
         {isEditing ? (
-          <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {user.role === 'nursery' ? 'Nursery Name' : 'Full Name'}
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px'
-                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Phone</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
                 <input
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px'
-                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Address</label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
               <textarea
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 rows="3"
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  resize: 'vertical'
-                }}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>City</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
                 <input
                   type="text"
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px'
-                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Postal Code</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
                 <input
                   type="text"
                   value={formData.postalCode}
                   onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px'
-                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -935,42 +955,45 @@ export const UserProfile = () => {
             <button
               type="submit"
               disabled={loading}
-              style={{
-                padding: '12px 24px',
-                backgroundColor: loading ? '#ccc' : '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: 'bold'
-              }}
+              className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Updating...' : 'Update Profile'}
             </button>
           </form>
         ) : (
-          <div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <strong>{user.role === 'nursery' ? 'Nursery Name:' : 'Name:'}</strong> {user.name}
+                <span className="block text-sm font-medium text-gray-500 mb-1">
+                  {user.role === 'nursery' ? 'Nursery Name' : 'Name'}
+                </span>
+                <span className="text-lg text-gray-800">{user.name}</span>
               </div>
               <div>
-                <strong>Email:</strong> {user.email}
+                <span className="block text-sm font-medium text-gray-500 mb-1">Email</span>
+                <span className="text-lg text-gray-800">{user.email}</span>
               </div>
               <div>
-                <strong>Phone:</strong> {user.phone || 'Not provided'}
+                <span className="block text-sm font-medium text-gray-500 mb-1">Phone</span>
+                <span className="text-lg text-gray-800">{user.phone || 'Not provided'}</span>
               </div>
               <div>
-                <strong>Role:</strong> {user.role}
+                <span className="block text-sm font-medium text-gray-500 mb-1">Role</span>
+                <span className="text-lg text-gray-800 capitalize">{user.role}</span>
               </div>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <strong>Address:</strong> {user.address || 'Not provided'}
+            </div>
+            <div>
+              <span className="block text-sm font-medium text-gray-500 mb-1">Address</span>
+              <span className="text-lg text-gray-800">{user.address || 'Not provided'}</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <span className="block text-sm font-medium text-gray-500 mb-1">City</span>
+                <span className="text-lg text-gray-800">{user.city || 'Not provided'}</span>
               </div>
               <div>
-                <strong>City:</strong> {user.city || 'Not provided'}
-              </div>
-              <div>
-                <strong>Postal Code:</strong> {user.postalCode || 'Not provided'}
+                <span className="block text-sm font-medium text-gray-500 mb-1">Postal Code</span>
+                <span className="text-lg text-gray-800">{user.postalCode || 'Not provided'}</span>
               </div>
             </div>
           </div>

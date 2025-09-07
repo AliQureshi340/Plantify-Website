@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from './AuthSystem'; // Fixed import
+import { useAuth } from './AuthSystem';
+import AddPlantModal from './AddPlantModal';
 
-/* eslint-disable no-restricted-globals */
 const NurseryDashboard = () => {
-  const { authFetch } = useAuth(); // Get authFetch for authenticated API calls
+  const { authFetch } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [plants, setPlants] = useState([]);
   const [orders, setOrders] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [editingPlant, setEditingPlant] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [newPlant, setNewPlant] = useState({
-    name: '', price: '', stock: '', category: '', image: '', description: '', discount: 0
-  });
+  const [showAddPlant, setShowAddPlant] = useState(false);
   const [notification, setNotification] = useState(null);
 
   // Show notification
@@ -30,7 +28,7 @@ const NurseryDashboard = () => {
 
   const fetchPlants = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/plants'); // Plants are public
+      const response = await fetch('http://localhost:5000/api/plants');
       const data = await response.json();
       setPlants(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -42,7 +40,7 @@ const NurseryDashboard = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await authFetch('/api/orders'); // Use authFetch for protected route
+      const response = await authFetch('/api/orders');
       const data = await response.json();
       setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -54,38 +52,14 @@ const NurseryDashboard = () => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await authFetch('/api/admin/users'); // Use authFetch for protected route
+      const response = await authFetch('/api/admin/users');
       const data = await response.json();
-      // Filter only customers (role: 'user')
       const customerData = Array.isArray(data) ? data.filter(user => user.role === 'user') : [];
       setCustomers(customerData);
     } catch (error) {
       console.error('Error fetching customers:', error);
       showNotification('Failed to fetch customers', 'error');
       setCustomers([]);
-    }
-  };
-
-  const handleAddPlant = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await authFetch('/api/plants', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newPlant)
-      });
-      if (response.ok) {
-        fetchPlants();
-        setNewPlant({ name: '', price: '', stock: '', category: '', image: '', description: '', discount: 0 });
-        setActiveTab('plants');
-        showNotification('Plant added successfully!');
-      } else {
-        const error = await response.json();
-        showNotification(error.error || 'Failed to add plant', 'error');
-      }
-    } catch (error) {
-      console.error('Error adding plant:', error);
-      showNotification('Failed to add plant', 'error');
     }
   };
 
@@ -111,7 +85,7 @@ const NurseryDashboard = () => {
   };
 
   const handleDeletePlant = async (id) => {
-    if (!confirm('Are you sure you want to delete this plant?')) return;
+    if (!window.confirm('Are you sure you want to delete this plant?')) return;
     
     try {
       const response = await authFetch(`/api/plants/${id}`, { method: 'DELETE' });
@@ -149,7 +123,6 @@ const NurseryDashboard = () => {
   };
 
   const generateReport = () => {
-    // Safety checks to prevent errors
     if (!orders || !Array.isArray(orders)) {
       return {
         totalSales: 0,
@@ -221,7 +194,6 @@ const NurseryDashboard = () => {
 
   // Dashboard Overview with enhanced metrics
   const renderDashboard = () => {
-    // Add safety check for orders.slice
     const recentOrders = (orders || []).slice(0, 5);
     const lowStockPlants = (plants || []).filter(plant => plant.stock < 10).slice(0, 5);
 
@@ -240,7 +212,7 @@ const NurseryDashboard = () => {
               cursor: 'pointer'
             }}
           >
-            🛍️ View Live Shop
+            View Live Shop
           </button>
         </div>
         
@@ -282,7 +254,7 @@ const NurseryDashboard = () => {
           {/* Recent Orders */}
           <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '12px', padding: '20px' }}>
             <h3 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              📦 Recent Orders
+              Recent Orders
             </h3>
             {recentOrders.map(order => (
               <div key={order._id} style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
@@ -334,7 +306,7 @@ const NurseryDashboard = () => {
           {/* Low Stock Alert */}
           <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '12px', padding: '20px' }}>
             <h3 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              ⚠️ Low Stock Alert
+              Low Stock Alert
             </h3>
             {lowStockPlants.map(plant => (
               <div key={plant._id} style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
@@ -372,7 +344,7 @@ const NurseryDashboard = () => {
           {/* Top Selling Plants */}
           <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '12px', padding: '20px' }}>
             <h3 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              🏆 Top Sellers
+              Top Sellers
             </h3>
             {report.topSellingPlants.map((plant, index) => (
               <div key={plant._id} style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
@@ -423,10 +395,10 @@ const NurseryDashboard = () => {
             onClick={() => window.open('/shop', '_blank')}
             style={{ padding: '10px 20px', background: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
           >
-            🛍️ View in Shop
+            View in Shop
           </button>
           <button 
-            onClick={() => setActiveTab('add-plant')} 
+            onClick={() => setShowAddPlant(true)} 
             style={{ padding: '10px 20px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
           >
             + Add New Plant
@@ -578,197 +550,6 @@ const NurseryDashboard = () => {
             <p>No plants in inventory. Add your first plant to get started!</p>
           </div>
         )}
-      </div>
-    </div>
-  );
-
-  // Enhanced Add Plant Form
-  const renderAddPlant = () => (
-    <div style={{ padding: '20px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
-        <button 
-          onClick={() => setActiveTab('plants')}
-          style={{ 
-            padding: '8px 16px', 
-            background: '#6c757d', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          ← Back to Plants
-        </button>
-        <h2 style={{ margin: 0 }}>Add New Plant to Shop</h2>
-      </div>
-      
-      <div style={{ background: '#fff', padding: '30px', borderRadius: '12px', border: '1px solid #ddd', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-        <form onSubmit={handleAddPlant}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px', marginBottom: '25px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>Plant Name *</label>
-              <input 
-                type="text" 
-                value={newPlant.name}
-                onChange={(e) => setNewPlant({...newPlant, name: e.target.value})}
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  border: '2px solid #e9ecef', 
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  transition: 'border-color 0.2s'
-                }}
-                required 
-                placeholder="e.g., Snake Plant"
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>Category *</label>
-              <select 
-                value={newPlant.category}
-                onChange={(e) => setNewPlant({...newPlant, category: e.target.value})}
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  border: '2px solid #e9ecef', 
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
-                required
-              >
-                <option value="">Select Category</option>
-                <option value="Indoor">Indoor Plants</option>
-                <option value="Outdoor">Outdoor Plants</option>
-                <option value="Flowering">Flowering Plants</option>
-                <option value="Herbs">Herbs</option>
-                <option value="Succulents">Succulents</option>
-              </select>
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>Price (Rs) *</label>
-              <input 
-                type="number" 
-                value={newPlant.price}
-                onChange={(e) => setNewPlant({...newPlant, price: e.target.value})}
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  border: '2px solid #e9ecef', 
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
-                required 
-                min="1"
-                placeholder="e.g., 1500"
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>Initial Stock *</label>
-              <input 
-                type="number" 
-                value={newPlant.stock}
-                onChange={(e) => setNewPlant({...newPlant, stock: e.target.value})}
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  border: '2px solid #e9ecef', 
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
-                required 
-                min="0"
-                placeholder="e.g., 25"
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>Discount (%)</label>
-              <input 
-                type="number" 
-                value={newPlant.discount}
-                onChange={(e) => setNewPlant({...newPlant, discount: e.target.value})}
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  border: '2px solid #e9ecef', 
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
-                min="0" 
-                max="100"
-                placeholder="e.g., 10"
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>Image URL</label>
-              <input 
-                type="url" 
-                value={newPlant.image}
-                onChange={(e) => setNewPlant({...newPlant, image: e.target.value})}
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  border: '2px solid #e9ecef', 
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
-                placeholder="https://example.com/plant-image.jpg"
-              />
-            </div>
-          </div>
-          
-          <div style={{ marginBottom: '25px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>Plant Description</label>
-            <textarea 
-              value={newPlant.description}
-              onChange={(e) => setNewPlant({...newPlant, description: e.target.value})}
-              style={{ 
-                width: '100%', 
-                padding: '12px', 
-                border: '2px solid #e9ecef', 
-                borderRadius: '8px', 
-                height: '120px',
-                fontSize: '14px',
-                resize: 'vertical'
-              }}
-              placeholder="Describe the plant, its care requirements, benefits, etc..."
-            />
-          </div>
-          
-          <div style={{ display: 'flex', gap: '15px', justifyContent: 'flex-end' }}>
-            <button 
-              type="button" 
-              onClick={() => setActiveTab('plants')} 
-              style={{ 
-                padding: '12px 24px', 
-                background: '#6c757d', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600'
-              }}
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              style={{ 
-                padding: '12px 24px', 
-                background: '#28a745', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600'
-              }}
-            >
-              Add Plant to Shop
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );
@@ -1162,13 +943,17 @@ const NurseryDashboard = () => {
       <div style={{ flex: 1, overflow: 'auto' }}>
         {activeTab === 'dashboard' && renderDashboard()}
         {activeTab === 'plants' && renderPlants()}
-        {activeTab === 'add-plant' && renderAddPlant()}
         {activeTab === 'orders' && renderOrders()}
         {activeTab === 'customers' && renderCustomers()}
         {activeTab === 'reports' && renderReports()}
       </div>
 
       {/* Modals */}
+      <AddPlantModal 
+        showAddPlant={showAddPlant} 
+        setShowAddPlant={setShowAddPlant} 
+        onPlantAdded={fetchPlants}
+      />
       {renderEditModal()}
       <OrderDetailsModal />
       <Notification />

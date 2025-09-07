@@ -21,6 +21,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
+app.use('/images', express.static('uploads')); // Serve images at /images path
 
 // Create uploads directory if not exists
 if (!fs.existsSync('uploads')) {
@@ -49,12 +50,17 @@ db.once('open', async () => {
 // Multer configuration for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
+    if (!fs.existsSync('uploads')) {
+      fs.mkdirSync('uploads');
+    }
     cb(null, 'uploads/');
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
+    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
+    cb(null, uniqueName);
   }
 });
+
 const upload = multer({ 
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
@@ -71,7 +77,7 @@ const upload = multer({
   }
 });
 
-// Configure nodemailer with Gmail - FIXED THE TYPO HERE
+// Configure nodemailer
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   secure: true,
@@ -174,7 +180,7 @@ const orderSchema = new mongoose.Schema({
       return 'ORD' + Date.now() + Math.floor(Math.random() * 1000);
     }
   },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   customerName: { type: String, required: true, trim: true },
   customerEmail: { type: String, required: true, trim: true, lowercase: true },
   customerPhone: { type: String, required: true, trim: true },
@@ -264,12 +270,11 @@ const requireRole = (roles) => {
 
 // ==================== OTP AUTHENTICATION ROUTES ====================
 
-// Send OTP Route - COMPLETE IMPLEMENTATION
+// Send OTP Route
 app.post('/api/auth/send-otp', async (req, res) => {
   try {
     const { email, role } = req.body;
 
-    // Validate input
     if (!email || !role) {
       return res.status(400).json({ error: 'Email and role are required' });
     }
@@ -278,7 +283,6 @@ app.post('/api/auth/send-otp', async (req, res) => {
       return res.status(400).json({ error: 'Invalid role specified' });
     }
 
-    // Check if user exists with this email and role combination
     const user = await User.findOne({ 
       email: email.toLowerCase().trim(), 
       role: role 
@@ -294,13 +298,10 @@ app.post('/api/auth/send-otp', async (req, res) => {
       return res.status(400).json({ error: 'Account is deactivated' });
     }
 
-    // Generate secure 6-digit OTP
     const otp = crypto.randomInt(100000, 999999).toString();
     
-    // Remove any existing OTP for this email/role combination
     await OTP.deleteMany({ email: email.toLowerCase().trim(), role });
     
-    // Save new OTP
     const newOTP = new OTP({ 
       email: email.toLowerCase().trim(), 
       otp, 
@@ -309,147 +310,42 @@ app.post('/api/auth/send-otp', async (req, res) => {
     });
     await newOTP.save();
 
-    // Prepare email content based on role
     const roleTitle = role === 'nursery' ? 'Nursery Owner' : role === 'admin' ? 'Administrator' : 'User';
     const roleEmoji = role === 'nursery' ? '🌿' : role === 'admin' ? '👑' : '🌱';
 
-    // Send OTP via email
-    const mailOptions = {
-      from: {
-        name: 'Plantify Authentication',
-        address: process.env.EMAIL_USER
-      },
-      to: email,
-      subject: `Plantify Login OTP - ${roleTitle} Portal`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Plantify OTP Verification</title>
-        </head>
-        <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc;">
-          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-top: 20px;">
-            
-            <!-- Header -->
-            <div style="background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 30px 20px; text-align: center;">
-              <h1 style="margin: 0; font-size: 32px; font-weight: bold;">
-                ${roleEmoji} Plantify
-              </h1>
-              <p style="margin: 10px 0 0 0; font-size: 18px; opacity: 0.9;">
-                ${roleTitle} Portal Login
-              </p>
-            </div>
-            
-            <!-- Content -->
-            <div style="padding: 40px 30px;">
-              <div style="text-align: center; margin-bottom: 30px;">
-                <h2 style="color: #1f2937; margin: 0 0 10px 0; font-size: 24px;">
-                  Verification Required
-                </h2>
-                <p style="color: #6b7280; margin: 0; font-size: 16px;">
-                  Please enter the following OTP code to complete your login
-                </p>
-              </div>
-              
-              <!-- OTP Code -->
-              <div style="text-align: center; margin: 40px 0;">
-                <div style="display: inline-block; background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 3px solid #059669; border-radius: 16px; padding: 25px 40px;">
-                  <div style="font-size: 48px; font-weight: bold; color: #059669; letter-spacing: 8px; font-family: 'Courier New', monospace;">
-                    ${otp}
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Instructions -->
-              <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 30px 0;">
-                <div style="display: flex; align-items: flex-start;">
-                  <div style="color: #f59e0b; margin-right: 12px; font-size: 20px;">⚠️</div>
-                  <div>
-                    <h3 style="color: #92400e; margin: 0 0 8px 0; font-size: 16px; font-weight: bold;">
-                      Important Security Information
-                    </h3>
-                    <ul style="color: #92400e; margin: 0; padding-left: 16px; font-size: 14px; line-height: 1.5;">
-                      <li>This OTP expires in <strong>5 minutes</strong></li>
-                      <li>Do not share this code with anyone</li>
-                      <li>Plantify will never ask for this code via phone or email</li>
-                      <li>Enter this code only on the official Plantify login page</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- User Info -->
-              <div style="background-color: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
-                <p style="color: #374151; margin: 0; font-size: 14px;">
-                  <strong>Login Details:</strong><br>
-                  Email: ${email}<br>
-                  Role: ${roleTitle}<br>
-                  Time: ${new Date().toLocaleString()}
-                </p>
-              </div>
-            </div>
-            
-            <!-- Footer -->
-            <div style="background-color: #f9fafb; border-top: 1px solid #e5e7eb; padding: 25px 30px; text-align: center;">
-              <p style="color: #6b7280; margin: 0 0 10px 0; font-size: 14px;">
-                If you didn't request this login, please ignore this email and ensure your account is secure.
-              </p>
-              <p style="color: #9ca3af; margin: 0; font-size: 12px;">
-                This is an automated message from Plantify. Please do not reply to this email.
-              </p>
-              <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
-                <p style="color: #9ca3af; margin: 0; font-size: 11px;">
-                  © ${new Date().getFullYear()} Plantify. All rights reserved.
-                </p>
-              </div>
-            </div>
+    if (transporter) {
+      const mailOptions = {
+        from: {
+          name: 'Plantify Authentication',
+          address: process.env.EMAIL_USER
+        },
+        to: email,
+        subject: `Plantify Login OTP - ${roleTitle} Portal`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>${roleEmoji} Plantify - ${roleTitle} Portal</h2>
+            <p>Your OTP code is: <strong>${otp}</strong></p>
+            <p>This code expires in 5 minutes.</p>
+            <p>If you didn't request this login, please ignore this email.</p>
           </div>
-        </body>
-        </html>
-      `,
-      text: `
-        Plantify ${roleTitle} Portal - Login Verification
-        
-        Your OTP code is: ${otp}
-        
-        This code expires in 5 minutes.
-        
-        Login Details:
-        - Email: ${email}
-        - Role: ${roleTitle}
-        - Time: ${new Date().toLocaleString()}
-        
-        Security Notice:
-        - Do not share this code with anyone
-        - Enter this code only on the official Plantify login page
-        - If you didn't request this login, please ignore this email
-        
-        - Plantify Team
-      `
-    };
+        `,
+        text: `Plantify ${roleTitle} Portal - Your OTP code is: ${otp}. This code expires in 5 minutes.`
+      };
 
-    await transporter.sendMail(mailOptions);
+      await transporter.sendMail(mailOptions);
+    }
     
     console.log(`📧 OTP sent to ${email} for ${role} role: ${otp}`);
     
     res.json({ 
       success: true,
       message: 'OTP sent successfully to your email',
-      email: email.replace(/(.{2}).*(@.*)/, '$1***$2'), // Mask email for security
-      expiresIn: 300 // 5 minutes
+      email: email.replace(/(.{2}).*(@.*)/, '$1***$2'),
+      expiresIn: 300
     });
 
   } catch (error) {
     console.error('❌ OTP Send Error:', error);
-    
-    if (error.code === 'EAUTH' || error.code === 'ECONNECTION') {
-      return res.status(500).json({ 
-        error: 'Email service unavailable. Please check server configuration.' 
-      });
-    }
-    
     res.status(500).json({ 
       error: 'Failed to send OTP. Please try again later.' 
     });
@@ -463,7 +359,6 @@ app.post('/api/auth/register', upload.single('profileImage'), async (req, res) =
   try {
     const { name, email, password, confirmPassword, phone, address, city, postalCode, role } = req.body;
     
-    // Validation
     if (!name || !email || !password || !phone) {
       return res.status(400).json({ error: 'Name, email, password, and phone are required' });
     }
@@ -478,7 +373,6 @@ app.post('/api/auth/register', upload.single('profileImage'), async (req, res) =
 
     const userRole = role || 'user';
     
-    // Check if user already exists with same email and role
     const existingUser = await User.findOne({ 
       email: email.toLowerCase().trim(), 
       role: userRole 
@@ -490,7 +384,6 @@ app.post('/api/auth/register', upload.single('profileImage'), async (req, res) =
       });
     }
 
-    // Create user data
     const userData = {
       name: name.trim(),
       email: email.toLowerCase().trim(),
@@ -502,16 +395,13 @@ app.post('/api/auth/register', upload.single('profileImage'), async (req, res) =
       role: userRole
     };
 
-    // Handle profile image upload
     if (req.file) {
       userData.profileImage = `/uploads/${req.file.filename}`;
     }
 
-    // Create and save user
     const user = new User(userData);
     await user.save();
 
-    // Generate JWT token
     const token = jwt.sign(
       { 
         userId: user._id, 
@@ -560,7 +450,6 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password, expectedRole, otp } = req.body;
 
-    // Validate input
     if (!email || !password || !expectedRole) {
       return res.status(400).json({ error: 'Email, password, and role are required' });
     }
@@ -573,7 +462,6 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    // Find user with specific email and role combination
     const user = await User.findOne({ 
       email: email.toLowerCase().trim(), 
       role: expectedRole 
@@ -589,13 +477,11 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'Account is deactivated' });
     }
 
-    // Verify password
     const isValidPassword = await user.comparePassword(password);
     if (!isValidPassword) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Verify OTP
     const otpRecord = await OTP.findOne({ 
       email: email.toLowerCase().trim(), 
       role: expectedRole, 
@@ -603,33 +489,16 @@ app.post('/api/auth/login', async (req, res) => {
     });
 
     if (!otpRecord) {
-      // Increment failed attempts for rate limiting
-      await OTP.updateOne(
-        { email: email.toLowerCase().trim(), role: expectedRole },
-        { $inc: { attempts: 1 } }
-      );
-      
       return res.status(400).json({ 
         error: 'Invalid or expired OTP. Please request a new one.' 
       });
     }
 
-    // Check if too many attempts
-    if (otpRecord.attempts >= 5) {
-      await OTP.deleteOne({ _id: otpRecord._id });
-      return res.status(400).json({ 
-        error: 'Too many failed attempts. Please request a new OTP.' 
-      });
-    }
-
-    // OTP is valid, delete it to prevent reuse
     await OTP.deleteOne({ _id: otpRecord._id });
 
-    // Update user's last login
     user.lastLogin = new Date();
     await user.save();
 
-    // Generate JWT token
     const token = jwt.sign(
       { 
         userId: user._id, 
@@ -685,12 +554,10 @@ app.put('/api/auth/profile', authenticateToken, upload.single('profileImage'), a
   try {
     const updateData = { ...req.body };
     
-    // Remove sensitive fields that shouldn't be updated through this route
     delete updateData.password;
     delete updateData.role;
-    delete updateData.email; // Email changes require verification
+    delete updateData.email;
     
-    // Handle profile image upload
     if (req.file) {
       updateData.profileImage = `/uploads/${req.file.filename}`;
     }
@@ -719,8 +586,580 @@ app.put('/api/auth/profile', authenticateToken, upload.single('profileImage'), a
   }
 });
 
-// Rest of your routes remain the same...
-// (I'll skip the rest as they're already working correctly)
+// ==================== PLANT MANAGEMENT ROUTES ====================
+
+// Get all plants for store
+app.get('/api/store/plants', async (req, res) => {
+  try {
+    const { category, search, sortBy } = req.query;
+    let query = { isActive: true };
+    
+    if (category && category !== 'all') {
+      query.category = category;
+    }
+    
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    let sortOption = {};
+    switch (sortBy) {
+      case 'price_low':
+        sortOption = { price: 1 };
+        break;
+      case 'price_high':
+        sortOption = { price: -1 };
+        break;
+      case 'popular':
+        sortOption = { sold: -1 };
+        break;
+      case 'newest':
+        sortOption = { createdAt: -1 };
+        break;
+      default:
+        sortOption = { name: 1 };
+    }
+    
+    const plants = await Plant.find(query).sort(sortOption);
+    res.json(plants);
+  } catch (error) {
+    console.error('Error fetching plants:', error);
+    res.status(500).json({ error: 'Failed to fetch plants' });
+  }
+});
+
+// Get categories
+app.get('/api/store/categories', async (req, res) => {
+  try {
+    const categories = await Plant.distinct('category', { isActive: true });
+    res.json(categories);
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+
+// Get plants by nursery owner or all plants for admin
+app.get('/api/plants/my', authenticateToken, requireRole(['admin', 'nursery']), async (req, res) => {
+  try {
+    const query = req.user.role === 'nursery' 
+      ? { nurseryId: req.user.userId }
+      : {}; // Admin can see all plants
+      
+    const plants = await Plant.find(query)
+      .populate('nurseryId', 'name email')
+      .sort({ createdAt: -1 });
+    
+    res.json(plants);
+  } catch (error) {
+    console.error('Error fetching my plants:', error);
+    res.status(500).json({ error: 'Failed to fetch plants' });
+  }
+});
+
+// Create plant (admin/nursery only)
+app.post('/api/plants', authenticateToken, requireRole(['admin', 'nursery']), upload.single('image'), async (req, res) => {
+  try {
+    const plantData = {
+      ...req.body,
+      nurseryId: req.user.role === 'nursery' ? req.user.userId : null,
+      updatedAt: new Date()
+    };
+    
+    if (req.file) {
+      plantData.image = `/uploads/${req.file.filename}`;
+    }
+    
+    const plant = new Plant(plantData);
+    await plant.save();
+    
+    console.log(`✅ Plant created: ${plant.name} by ${req.user.role}: ${req.user.email}`);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Plant created successfully',
+      plant
+    });
+  } catch (error) {
+    console.error('Error creating plant:', error);
+    res.status(500).json({ error: 'Failed to create plant' });
+  }
+});
+
+// Update plant (admin/nursery only - only their own plants)
+app.put('/api/plants/:id', authenticateToken, requireRole(['admin', 'nursery']), upload.single('image'), async (req, res) => {
+  try {
+    const plantId = req.params.id;
+    
+    // Check if plant exists and user has permission
+    let query = { _id: plantId };
+    if (req.user.role === 'nursery') {
+      query.nurseryId = req.user.userId; // Nursery can only update their own plants
+    }
+    
+    const plant = await Plant.findOne(query);
+    if (!plant) {
+      return res.status(404).json({ error: 'Plant not found or unauthorized' });
+    }
+    
+    const updateData = { 
+      ...req.body,
+      updatedAt: new Date()
+    };
+    
+    if (req.file) {
+      updateData.image = `/uploads/${req.file.filename}`;
+    }
+    
+    const updatedPlant = await Plant.findByIdAndUpdate(
+      plantId,
+      updateData,
+      { new: true, runValidators: true }
+    );
+    
+    res.json({
+      success: true,
+      message: 'Plant updated successfully',
+      plant: updatedPlant
+    });
+  } catch (error) {
+    console.error('Error updating plant:', error);
+    res.status(500).json({ error: 'Failed to update plant' });
+  }
+});
+
+// Delete/Deactivate plant (admin/nursery only - only their own plants)
+app.delete('/api/plants/:id', authenticateToken, requireRole(['admin', 'nursery']), async (req, res) => {
+  try {
+    const plantId = req.params.id;
+    
+    // Check if plant exists and user has permission
+    let query = { _id: plantId };
+    if (req.user.role === 'nursery') {
+      query.nurseryId = req.user.userId; // Nursery can only delete their own plants
+    }
+    
+    const plant = await Plant.findOne(query);
+    if (!plant) {
+      return res.status(404).json({ error: 'Plant not found or unauthorized' });
+    }
+    
+    // Soft delete - just deactivate the plant
+    await Plant.findByIdAndUpdate(plantId, { 
+      isActive: false,
+      updatedAt: new Date()
+    });
+    
+    res.json({
+      success: true,
+      message: 'Plant deactivated successfully'
+    });
+  } catch (error) {
+    console.error('Error deactivating plant:', error);
+    res.status(500).json({ error: 'Failed to deactivate plant' });
+  }
+});
+
+// Toggle plant status (activate/deactivate)
+app.patch('/api/plants/:id/toggle-status', authenticateToken, requireRole(['admin', 'nursery']), async (req, res) => {
+  try {
+    const plantId = req.params.id;
+    
+    // Check if plant exists and user has permission
+    let query = { _id: plantId };
+    if (req.user.role === 'nursery') {
+      query.nurseryId = req.user.userId;
+    }
+    
+    const plant = await Plant.findOne(query);
+    if (!plant) {
+      return res.status(404).json({ error: 'Plant not found or unauthorized' });
+    }
+    
+    const updatedPlant = await Plant.findByIdAndUpdate(
+      plantId,
+      { 
+        isActive: !plant.isActive,
+        updatedAt: new Date()
+      },
+      { new: true }
+    );
+    
+    res.json({
+      success: true,
+      message: `Plant ${updatedPlant.isActive ? 'activated' : 'deactivated'} successfully`,
+      plant: updatedPlant
+    });
+  } catch (error) {
+    console.error('Error toggling plant status:', error);
+    res.status(500).json({ error: 'Failed to toggle plant status' });
+  }
+});
+
+// ==================== ORDER ROUTES ====================
+
+// Create order
+app.post('/api/orders', async (req, res) => {
+  try {
+    const orderData = {
+      ...req.body,
+      userId: req.body.userId || null
+    };
+    
+    // Validate stock availability before creating order
+    for (const item of req.body.items) {
+      const plant = await Plant.findById(item.plantId);
+      if (!plant) {
+        return res.status(400).json({ error: `Plant ${item.plantName} not found` });
+      }
+      if (plant.stock < item.quantity) {
+        return res.status(400).json({ 
+          error: `Insufficient stock for ${item.plantName}. Available: ${plant.stock}, Requested: ${item.quantity}` 
+        });
+      }
+    }
+    
+    const order = new Order(orderData);
+    await order.save();
+    
+    // Update plant stock and sold count
+    for (const item of req.body.items) {
+      await Plant.findByIdAndUpdate(item.plantId, {
+        $inc: { 
+          stock: -item.quantity, 
+          sold: item.quantity 
+        },
+        updatedAt: new Date()
+      });
+    }
+    
+    console.log(`✅ Order created: ${order.orderNumber} - Total: Rs ${order.total}`);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Order placed successfully',
+      order
+    });
+  } catch (error) {
+    console.error('Error creating order:', error);
+    res.status(500).json({ error: 'Failed to create order' });
+  }
+});
+
+// Get user orders
+app.get('/api/orders/my', authenticateToken, async (req, res) => {
+  try {
+    const orders = await Order.find({ userId: req.user.userId })
+      .populate('items.plantId', 'name image category')
+      .sort({ createdAt: -1 });
+    
+    res.json(orders);
+  } catch (error) {
+    console.error('Error fetching user orders:', error);
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+});
+
+// Get all orders (admin only)
+app.get('/api/orders', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { status, page = 1, limit = 10 } = req.query;
+    
+    let query = {};
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    
+    const skip = (page - 1) * limit;
+    
+    const orders = await Order.find(query)
+      .populate('userId', 'name email')
+      .populate('items.plantId', 'name image category')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+      
+    const totalOrders = await Order.countDocuments(query);
+    
+    res.json({
+      orders,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalOrders / limit),
+        totalOrders,
+        hasNext: page < Math.ceil(totalOrders / limit),
+        hasPrev: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+});
+
+// Update order status (admin only)
+app.patch('/api/orders/:id/status', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { status } = req.body;
+    const orderId = req.params.id;
+    
+    if (!['pending', 'processing', 'shipped', 'delivered', 'cancelled'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    
+    const order = await Order.findByIdAndUpdate(
+      orderId,
+      { 
+        status,
+        updatedAt: new Date()
+      },
+      { new: true }
+    ).populate('items.plantId', 'name image category');
+    
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    console.log(`✅ Order ${order.orderNumber} status updated to: ${status}`);
+    
+    res.json({
+      success: true,
+      message: 'Order status updated successfully',
+      order
+    });
+  } catch (error) {
+    console.error('Error updating order status:', error);
+    res.status(500).json({ error: 'Failed to update order status' });
+  }
+});
+
+// Get order by ID
+app.get('/api/orders/:id', authenticateToken, async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    
+    let query = { _id: orderId };
+    
+    // Regular users can only see their own orders
+    if (req.user.role === 'user') {
+      query.userId = req.user.userId;
+    }
+    
+    const order = await Order.findOne(query)
+      .populate('userId', 'name email phone')
+      .populate('items.plantId', 'name image category');
+      
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    res.json(order);
+  } catch (error) {
+    console.error('Error fetching order:', error);
+    res.status(500).json({ error: 'Failed to fetch order' });
+  }
+});
+
+// ==================== DASHBOARD ANALYTICS ROUTES ====================
+
+// Get dashboard statistics (admin only)
+app.get('/api/dashboard/stats', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments({ role: 'user', isActive: true });
+    const totalNurseries = await User.countDocuments({ role: 'nursery', isActive: true });
+    const totalPlants = await Plant.countDocuments({ isActive: true });
+    const totalOrders = await Order.countDocuments();
+    
+    const pendingOrders = await Order.countDocuments({ status: 'pending' });
+    const completedOrders = await Order.countDocuments({ status: 'delivered' });
+    
+    const totalRevenue = await Order.aggregate([
+      { $match: { status: { $in: ['delivered', 'shipped'] } } },
+      { $group: { _id: null, total: { $sum: '$total' } } }
+    ]);
+    
+    const lowStockPlants = await Plant.find({ 
+      isActive: true, 
+      stock: { $lt: 5, $gt: 0 } 
+    }).select('name stock category');
+    
+    const outOfStockPlants = await Plant.countDocuments({ 
+      isActive: true, 
+      stock: 0 
+    });
+    
+    const recentOrders = await Order.find()
+      .populate('userId', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('orderNumber customerName total status createdAt');
+    
+    res.json({
+      stats: {
+        totalUsers,
+        totalNurseries,
+        totalPlants,
+        totalOrders,
+        pendingOrders,
+        completedOrders,
+        totalRevenue: totalRevenue[0]?.total || 0,
+        outOfStockPlants
+      },
+      lowStockPlants,
+      recentOrders
+    });
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
+    res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
+  }
+});
+
+// Get nursery dashboard statistics (nursery only)
+app.get('/api/dashboard/nursery-stats', authenticateToken, requireRole(['nursery']), async (req, res) => {
+  try {
+    const nurseryId = req.user.userId;
+    
+    const totalPlants = await Plant.countDocuments({ 
+      nurseryId, 
+      isActive: true 
+    });
+    
+    const totalSold = await Plant.aggregate([
+      { $match: { nurseryId: new mongoose.Types.ObjectId(nurseryId) } },
+      { $group: { _id: null, total: { $sum: '$sold' } } }
+    ]);
+    
+    const totalRevenue = await Order.aggregate([
+      { $unwind: '$items' },
+      { 
+        $lookup: {
+          from: 'plants',
+          localField: 'items.plantId',
+          foreignField: '_id',
+          as: 'plant'
+        }
+      },
+      { $unwind: '$plant' },
+      { $match: { 'plant.nurseryId': new mongoose.Types.ObjectId(nurseryId) } },
+      { $group: { _id: null, total: { $sum: { $multiply: ['$items.quantity', '$items.price'] } } } }
+    ]);
+    
+    const lowStockPlants = await Plant.find({ 
+      nurseryId,
+      isActive: true, 
+      stock: { $lt: 5, $gt: 0 } 
+    }).select('name stock category');
+    
+    const outOfStockPlants = await Plant.countDocuments({ 
+      nurseryId,
+      isActive: true, 
+      stock: 0 
+    });
+    
+    const topSellingPlants = await Plant.find({ nurseryId })
+      .sort({ sold: -1 })
+      .limit(5)
+      .select('name sold price stock image');
+    
+    res.json({
+      stats: {
+        totalPlants,
+        totalSold: totalSold[0]?.total || 0,
+        totalRevenue: totalRevenue[0]?.total || 0,
+        outOfStockPlants
+      },
+      lowStockPlants,
+      topSellingPlants
+    });
+  } catch (error) {
+    console.error('Error fetching nursery dashboard stats:', error);
+    res.status(500).json({ error: 'Failed to fetch nursery dashboard statistics' });
+  }
+});
+
+// ==================== USER MANAGEMENT ROUTES (ADMIN ONLY) ====================
+
+// Get all users (admin only)
+app.get('/api/admin/users', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { role, page = 1, limit = 10, search } = req.query;
+    
+    let query = {};
+    if (role && role !== 'all') {
+      query.role = role;
+    }
+    
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    const skip = (page - 1) * limit;
+    
+    const users = await User.find(query)
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+      
+    const totalUsers = await User.countDocuments(query);
+    
+    res.json({
+      users,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalUsers / limit),
+        totalUsers,
+        hasNext: page < Math.ceil(totalUsers / limit),
+        hasPrev: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Toggle user status (admin only)
+app.patch('/api/admin/users/:id/toggle-status', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const userId = req.params.id;
+    
+    if (userId === req.user.userId.toString()) {
+      return res.status(400).json({ error: 'Cannot deactivate your own account' });
+    }
+    
+    const user = await User.findById(userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { 
+        isActive: !user.isActive,
+        updatedAt: new Date()
+      },
+      { new: true }
+    ).select('-password');
+    
+    console.log(`✅ User ${updatedUser.email} ${updatedUser.isActive ? 'activated' : 'deactivated'} by admin`);
+    
+    res.json({
+      success: true,
+      message: `User ${updatedUser.isActive ? 'activated' : 'deactivated'} successfully`,
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Error toggling user status:', error);
+    res.status(500).json({ error: 'Failed to toggle user status' });
+  }
+});
 
 // ==================== UTILITY ROUTES ====================
 
@@ -730,28 +1169,71 @@ app.get('/api/health', (req, res) => {
     status: 'OK', 
     message: 'Plantify API with OTP Authentication is running',
     timestamp: new Date().toISOString(),
-    version: '2.0.0'
+    version: '2.1.0',
+    features: [
+      'OTP Authentication',
+      'Plant Management',
+      'File Upload',
+      'Order Management',
+      'User Management',
+      'Dashboard Analytics'
+    ]
   });
 });
 
-// Test email configuration
-app.get('/api/test-email', authenticateToken, requireRole(['admin']), async (req, res) => {
-  try {
-    const testMail = await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: req.user.email,
-      subject: 'Plantify Email Test',
-      text: 'Email configuration is working correctly!'
-    });
+// Get server statistics
+app.get('/api/server-info', (req, res) => {
+  res.json({
+    server: 'Plantify API Server',
+    version: '2.1.0',
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    environment: process.env.NODE_ENV || 'development',
+    database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+    emailService: process.env.EMAIL_USER ? 'Configured' : 'Not Configured'
+  });
+});
 
-    res.json({ 
-      success: true, 
+// Test email endpoint (for debugging)
+app.post('/api/test-email', async (req, res) => {
+  try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      return res.status(400).json({ error: 'Email configuration not found' });
+    }
+    
+    const { to } = req.body;
+    if (!to) {
+      return res.status(400).json({ error: 'Recipient email required' });
+    }
+    
+    const mailOptions = {
+      from: {
+        name: 'Plantify Test',
+        address: process.env.EMAIL_USER
+      },
+      to: to,
+      subject: 'Plantify Email Test',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>🌱 Plantify Email Test</h2>
+          <p>This is a test email from Plantify API server.</p>
+          <p>If you received this email, the email configuration is working correctly!</p>
+          <p>Timestamp: ${new Date().toISOString()}</p>
+        </div>
+      `,
+      text: `Plantify Email Test - This is a test email from Plantify API server. Timestamp: ${new Date().toISOString()}`
+    };
+    
+    await transporter.sendMail(mailOptions);
+    
+    res.json({
+      success: true,
       message: 'Test email sent successfully',
-      messageId: testMail.messageId
+      to: to
     });
   } catch (error) {
-    console.error('❌ Email test failed:', error);
-    res.status(500).json({ error: 'Email test failed', details: error.message });
+    console.error('Error sending test email:', error);
+    res.status(500).json({ error: 'Failed to send test email' });
   }
 });
 
@@ -770,12 +1252,61 @@ app.use((error, req, res, next) => {
     return res.status(400).json({ error: error.message });
   }
   
-  res.status(500).json({ error: 'Internal server error' });
+  if (error.name === 'ValidationError') {
+    const errors = Object.values(error.errors).map(err => err.message);
+    return res.status(400).json({ error: errors.join(', ') });
+  }
+  
+  if (error.name === 'CastError') {
+    return res.status(400).json({ error: 'Invalid ID format' });
+  }
+  
+  if (error.code === 11000) {
+    const field = Object.keys(error.keyPattern)[0];
+    return res.status(400).json({ error: `${field} already exists` });
+  }
+  
+  res.status(500).json({ 
+    error: 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { details: error.message })
+  });
 });
 
 // Handle 404 routes
 app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+  res.status(404).json({ 
+    error: 'Route not found',
+    path: req.originalUrl,
+    method: req.method,
+    suggestion: 'Check the API documentation for available endpoints'
+  });
+});
+
+// Graceful shutdown handler
+process.on('SIGTERM', async () => {
+  console.log('🔄 Received SIGTERM, shutting down gracefully...');
+  
+  try {
+    await mongoose.connection.close();
+    console.log('✅ Database connection closed');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Error during shutdown:', error);
+    process.exit(1);
+  }
+});
+
+process.on('SIGINT', async () => {
+  console.log('🔄 Received SIGINT, shutting down gracefully...');
+  
+  try {
+    await mongoose.connection.close();
+    console.log('✅ Database connection closed');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Error during shutdown:', error);
+    process.exit(1);
+  }
 });
 
 // Start server
@@ -786,5 +1317,39 @@ app.listen(PORT, () => {
   console.log(`🔗 Health Check: http://localhost:${PORT}/api/health`);
   console.log(`📧 Email Service: ${process.env.EMAIL_USER ? 'Configured' : 'Not Configured'}`);
   console.log(`🗄️  Database: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
+  console.log(`🛡️  JWT Secret: ${JWT_SECRET ? 'Configured' : 'Using Default'}`);
+  console.log(`📁 Uploads Directory: ${fs.existsSync('uploads') ? 'Ready' : 'Not Found'}`);
   console.log('🚀 =================================');
+  
+  console.log('\n📋 Available API Endpoints:');
+  console.log('   🔐 Authentication:');
+  console.log('      POST /api/auth/register');
+  console.log('      POST /api/auth/login');
+  console.log('      POST /api/auth/send-otp');
+  console.log('      GET  /api/auth/profile');
+  console.log('      PUT  /api/auth/profile');
+  
+  console.log('   🌱 Plants:');
+  console.log('      GET  /api/store/plants');
+  console.log('      GET  /api/store/categories');
+  console.log('      GET  /api/plants/my');
+  console.log('      POST /api/plants');
+  console.log('      PUT  /api/plants/:id');
+  console.log('      DELETE /api/plants/:id');
+  
+  console.log('   🛒 Orders:');
+  console.log('      POST /api/orders');
+  console.log('      GET  /api/orders/my');
+  console.log('      GET  /api/orders');
+  console.log('      GET  /api/orders/:id');
+  
+  console.log('   📊 Dashboard:');
+  console.log('      GET  /api/dashboard/stats');
+  console.log('      GET  /api/dashboard/nursery-stats');
+  
+  console.log('   👥 Admin:');
+  console.log('      GET  /api/admin/users');
+  console.log('      PATCH /api/admin/users/:id/toggle-status');
+  
+  console.log('\n✨ Ready to serve requests!');
 });

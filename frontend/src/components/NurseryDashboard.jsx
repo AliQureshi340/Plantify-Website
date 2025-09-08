@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthSystem';
 import AddPlantModal from './AddPlantModal';
+import ShopOrdersManagement from "./Nursery-Section/ShopOrdersManagement";
+import NurseryAnimations from "../styles/NurseryAnimations.jsx";
+
+
 
 const NurseryDashboard = () => {
   const { authFetch } = useAuth();
@@ -39,16 +43,19 @@ const NurseryDashboard = () => {
   };
 
   const fetchOrders = async () => {
-    try {
-      const response = await authFetch('/api/orders');
-      const data = await response.json();
-      setOrders(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      showNotification('Failed to fetch orders', 'error');
-      setOrders([]);
-    }
-  };
+  try {
+    const response = await authFetch('/api/orders?limit=100');
+    const data = await response.json();
+    
+    // Handle both array response and object with orders property
+    const ordersData = Array.isArray(data) ? data : (data.orders || []);
+    setOrders(ordersData);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    showNotification('Failed to fetch orders', 'error');
+    setOrders([]);
+  }
+};
 
   const fetchCustomers = async () => {
     try {
@@ -84,23 +91,7 @@ const NurseryDashboard = () => {
     }
   };
 
-  const handleDeletePlant = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this plant?')) return;
-    
-    try {
-      const response = await authFetch(`/api/plants/${id}`, { method: 'DELETE' });
-      if (response.ok) {
-        fetchPlants();
-        showNotification('Plant deleted successfully!');
-      } else {
-        const error = await response.json();
-        showNotification(error.error || 'Failed to delete plant', 'error');
-      }
-    } catch (error) {
-      console.error('Error deleting plant:', error);
-      showNotification('Failed to delete plant', 'error');
-    }
-  };
+
 
   const updateOrderStatus = async (orderId, status) => {
     try {
@@ -262,7 +253,7 @@ const NurseryDashboard = () => {
                   <div>
                     <p style={{ margin: '0 0 4px 0', fontWeight: '600' }}>#{order._id.slice(-6)}</p>
                     <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#666' }}>
-                      {order.customerName} • Rs {order.total.toLocaleString()}
+                      {order.customerName || order.shippingAddress?.fullName || 'N/A'} • Rs {order.total.toLocaleString()}
                     </p>
                     <span style={{ 
                       padding: '2px 8px', 
@@ -524,20 +515,7 @@ const NurseryDashboard = () => {
                       >
                         Edit
                       </button>
-                      <button 
-                        onClick={() => handleDeletePlant(plant._id)} 
-                        style={{ 
-                          padding: '6px 12px', 
-                          background: '#dc3545', 
-                          color: 'white', 
-                          border: 'none', 
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px'
-                        }}
-                      >
-                        Delete
-                      </button>
+                      
                     </div>
                   </td>
                 </tr>
@@ -586,9 +564,15 @@ const NurseryDashboard = () => {
                 </td>
                 <td style={{ padding: '15px', border: '1px solid #ddd' }}>
                   <div>
-                    <p style={{ margin: '0 0 4px 0', fontWeight: '600' }}>{order.customerName}</p>
-                    <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#666' }}>{order.customerEmail}</p>
-                    <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>{order.customerPhone}</p>
+                    <p style={{ margin: '0 0 4px 0', fontWeight: '600' }}>
+                      {order.customerName || order.shippingAddress?.fullName || 'N/A'}
+                    </p>
+                    <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#666' }}>
+                      {order.customerEmail || order.shippingAddress?.email || 'N/A'}
+                    </p>
+                    <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
+                      {order.customerPhone || order.shippingAddress?.phone || 'N/A'}
+                    </p>
                   </div>
                 </td>
                 <td style={{ padding: '15px', border: '1px solid #ddd' }}>
@@ -667,85 +651,9 @@ const NurseryDashboard = () => {
     </div>
   );
 
-  // Enhanced Customers Management
-  const renderCustomers = () => (
-    <div style={{ padding: '20px' }}>
-      <h2>Customer Management</h2>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff' }}>
-          <thead>
-            <tr style={{ background: '#f8f9fa' }}>
-              <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>Name</th>
-              <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>Email</th>
-              <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>Phone</th>
-              <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>City</th>
-              <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>Joined</th>
-              <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {customers.map(customer => (
-              <tr key={customer._id}>
-                <td style={{ padding: '12px', border: '1px solid #ddd' }}>{customer.name}</td>
-                <td style={{ padding: '12px', border: '1px solid #ddd' }}>{customer.email}</td>
-                <td style={{ padding: '12px', border: '1px solid #ddd' }}>{customer.phone || 'N/A'}</td>
-                <td style={{ padding: '12px', border: '1px solid #ddd' }}>{customer.city || 'N/A'}</td>
-                <td style={{ padding: '12px', border: '1px solid #ddd' }}>
-                  {new Date(customer.createdAt).toLocaleDateString()}
-                </td>
-                <td style={{ padding: '12px', border: '1px solid #ddd' }}>
-                  <button style={{ padding: '5px 10px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>
-                    View Profile
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {customers.length === 0 && (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
-            <p>No customers registered yet.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
-  const renderReports = () => (
-    <div style={{ padding: '20px' }}>
-      <h2>Sales Reports & Analytics</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '30px' }}>
-        <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '8px', padding: '20px' }}>
-          <h3>Monthly Sales</h3>
-          <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#28a745' }}>Rs {report.totalSales.toLocaleString()}</p>
-        </div>
-        <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '8px', padding: '20px' }}>
-          <h3>Total Orders</h3>
-          <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#007bff' }}>{report.totalOrders}</p>
-        </div>
-        <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '8px', padding: '20px' }}>
-          <h3>Average Order Value</h3>
-          <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#6f42c1' }}>Rs {Math.round(report.averageOrderValue).toLocaleString()}</p>
-        </div>
-      </div>
-      
-      <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '8px', padding: '20px' }}>
-        <h3>Top Selling Plants</h3>
-        {plants.length > 0 ? (
-          plants.slice(0, 10).map(plant => (
-            <div key={plant._id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #eee' }}>
-              <span>{plant.name}</span>
-              <span>{plant.sold || 0} units sold</span>
-            </div>
-          ))
-        ) : (
-          <p style={{ textAlign: 'center', color: '#666', fontStyle: 'italic' }}>No plants in inventory yet.</p>
-        )}
-      </div>
-    </div>
-  );
 
-  // Order Details Modal
+  // Enhanced Order Details Modal
   const OrderDetailsModal = () => (
     selectedOrder && (
       <div style={{
@@ -765,11 +673,11 @@ const NurseryDashboard = () => {
           padding: '30px',
           borderRadius: '12px',
           width: '90%',
-          maxWidth: '600px',
+          maxWidth: '700px',
           maxHeight: '90vh',
           overflowY: 'auto'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
             <h2>Order Details #{selectedOrder._id.slice(-6)}</h2>
             <button 
               onClick={() => setSelectedOrder(null)}
@@ -779,58 +687,146 @@ const NurseryDashboard = () => {
             </button>
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <h4>Customer Information:</h4>
-            <p><strong>Name:</strong> {selectedOrder.customerName}</p>
-            <p><strong>Email:</strong> {selectedOrder.customerEmail}</p>
-            <p><strong>Phone:</strong> {selectedOrder.customerPhone}</p>
-            <p><strong>Address:</strong> {selectedOrder.customerAddress}</p>
-            <p><strong>Delivery Type:</strong> {selectedOrder.deliveryType}</p>
+          {/* Customer Information */}
+          <div style={{ marginBottom: '25px', padding: '20px', background: '#f8f9fa', borderRadius: '8px' }}>
+            <h4 style={{ margin: '0 0 15px 0' }}>Customer Information:</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <div>
+                <p style={{ margin: '0 0 8px 0' }}><strong>Name:</strong> {selectedOrder.customerName || selectedOrder.shippingAddress?.fullName || 'N/A'}</p>
+                <p style={{ margin: '0 0 8px 0' }}><strong>Email:</strong> {selectedOrder.customerEmail || selectedOrder.shippingAddress?.email || 'N/A'}</p>
+                <p style={{ margin: '0' }}><strong>Phone:</strong> {selectedOrder.customerPhone || selectedOrder.shippingAddress?.phone || 'N/A'}</p>
+              </div>
+              <div>
+                <p style={{ margin: '0 0 8px 0' }}><strong>Address:</strong> {selectedOrder.customerAddress || selectedOrder.shippingAddress?.address || 'N/A'}</p>
+                <p style={{ margin: '0 0 8px 0' }}><strong>City:</strong> {selectedOrder.shippingAddress?.city || 'N/A'}</p>
+                <p style={{ margin: '0' }}><strong>Delivery Type:</strong> {selectedOrder.deliveryType || 'N/A'}</p>
+              </div>
+            </div>
+            
+            {/* Show all customer orders if available */}
+            {selectedOrder.allCustomerOrders && selectedOrder.allCustomerOrders.length > 1 && (
+              <div style={{ marginTop: '15px', padding: '15px', background: 'white', borderRadius: '6px' }}>
+                <h5 style={{ margin: '0 0 10px 0' }}>Customer Order History ({selectedOrder.allCustomerOrders.length} orders):</h5>
+                {selectedOrder.allCustomerOrders.slice(0, 5).map((order, index) => (
+                  <div key={order._id} style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    padding: '8px 0',
+                    borderBottom: index < 4 ? '1px solid #eee' : 'none'
+                  }}>
+                    <span style={{ fontSize: '14px' }}>#{order._id.slice(-6)}</span>
+                    <span style={{ fontSize: '14px', color: '#666' }}>{new Date(order.createdAt).toLocaleDateString()}</span>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#28a745' }}>Rs {order.total.toLocaleString()}</span>
+                    <span style={{ 
+                      fontSize: '12px',
+                      padding: '2px 6px',
+                      borderRadius: '10px',
+                      background: order.status === 'completed' ? '#d4edda' : '#fff3cd',
+                      color: order.status === 'completed' ? '#155724' : '#856404'
+                    }}>
+                      {order.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <h4>Order Items:</h4>
-            {selectedOrder.items?.map((item, index) => (
-              <div key={index} style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                padding: '10px 0',
-                borderBottom: '1px solid #eee'
+          {/* Order Items */}
+          <div style={{ marginBottom: '25px' }}>
+            <h4 style={{ margin: '0 0 15px 0' }}>Order Items:</h4>
+            <div style={{ background: '#f8f9fa', borderRadius: '8px', padding: '15px' }}>
+              {selectedOrder.items?.map((item, index) => (
+                <div key={index} style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  padding: '12px 0',
+                  borderBottom: index < selectedOrder.items.length - 1 ? '1px solid #dee2e6' : 'none'
+                }}>
+                  <div>
+                    <p style={{ margin: '0 0 4px 0', fontWeight: '600', fontSize: '16px' }}>{item.plantName || item.name}</p>
+                    <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>Quantity: {item.quantity}</p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#666' }}>Rs {item.price?.toLocaleString()} each</p>
+                    <p style={{ margin: '0', fontSize: '16px', fontWeight: '600', color: '#28a745' }}>
+                      Rs {((item.price || 0) * item.quantity).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              <div style={{ 
+                fontWeight: 'bold', 
+                fontSize: '20px', 
+                marginTop: '15px',
+                textAlign: 'right',
+                padding: '15px 0',
+                borderTop: '2px solid #28a745',
+                color: '#28a745'
               }}>
-                <span>{item.plantName} x {item.quantity}</span>
-                <span>Rs {(item.price * item.quantity).toLocaleString()}</span>
+                Total: Rs {selectedOrder.total.toLocaleString()}
               </div>
-            ))}
-            <div style={{ 
-              fontWeight: 'bold', 
-              fontSize: '18px', 
-              marginTop: '10px',
-              textAlign: 'right'
-            }}>
-              Total: Rs {selectedOrder.total.toLocaleString()}
             </div>
           </div>
 
-          <div>
-            <h4>Update Status:</h4>
-            <select 
-              value={selectedOrder.status}
-              onChange={(e) => {
-                updateOrderStatus(selectedOrder._id, e.target.value);
-                setSelectedOrder({...selectedOrder, status: e.target.value});
-              }}
+          {/* Order Status Update */}
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 15px 0' }}>Update Order Status:</h4>
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+              <select 
+                value={selectedOrder.status}
+                onChange={(e) => {
+                  updateOrderStatus(selectedOrder._id, e.target.value);
+                  setSelectedOrder({...selectedOrder, status: e.target.value});
+                }}
+                style={{ 
+                  padding: '12px 15px', 
+                  border: '2px solid #ddd', 
+                  borderRadius: '6px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  minWidth: '200px'
+                }}
+              >
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <span style={{ 
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '600',
+                background: selectedOrder.status === 'completed' ? '#d4edda' : 
+                           selectedOrder.status === 'pending' ? '#fff3cd' : 
+                           selectedOrder.status === 'processing' ? '#d1ecf1' : '#f8d7da',
+                color: selectedOrder.status === 'completed' ? '#155724' : 
+                       selectedOrder.status === 'pending' ? '#856404' : 
+                       selectedOrder.status === 'processing' ? '#0c5460' : '#721c24'
+              }}>
+                Current: {selectedOrder.status.toUpperCase()}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ textAlign: 'right' }}>
+            <button 
+              onClick={() => setSelectedOrder(null)}
               style={{ 
-                padding: '10px', 
-                border: '1px solid #ddd', 
-                borderRadius: '4px',
-                width: '200px'
+                padding: '12px 24px', 
+                background: '#6c757d', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '6px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
               }}
             >
-              <option value="pending">Pending</option>
-              <option value="processing">Processing</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+              Close
+            </button>
           </div>
         </div>
       </div>
@@ -914,8 +910,6 @@ const NurseryDashboard = () => {
             { key: 'dashboard', icon: '📊', label: 'Dashboard' },
             { key: 'plants', icon: '🌱', label: 'Plant Inventory' },
             { key: 'orders', icon: '📦', label: 'Shop Orders' },
-            { key: 'customers', icon: '👥', label: 'Customers' },
-            { key: 'reports', icon: '📈', label: 'Reports' }
           ].map(item => (
             <div 
               key={item.key}
@@ -940,13 +934,11 @@ const NurseryDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, overflow: 'auto' }}>
-        {activeTab === 'dashboard' && renderDashboard()}
-        {activeTab === 'plants' && renderPlants()}
-        {activeTab === 'orders' && renderOrders()}
-        {activeTab === 'customers' && renderCustomers()}
-        {activeTab === 'reports' && renderReports()}
-      </div>
+     <div style={{ flex: 1, overflow: 'auto' }}>
+  {activeTab === 'dashboard' && renderDashboard()}
+  {activeTab === 'plants' && renderPlants()}
+  {activeTab === 'orders' && renderOrders()}
+</div>
 
       {/* Modals */}
       <AddPlantModal 

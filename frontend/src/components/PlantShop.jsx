@@ -552,34 +552,109 @@ const PlantInventory = ({ onClose, onPlantAdded }) => {
                       <div style={{ fontSize: '12px', color: '#999' }}>Sold: {plant.sold || 0}</div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                    <button
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#007bff',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px'
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: plant.isActive ? '#ffc107' : '#28a745',
-                        color: plant.isActive ? 'black' : 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px'
-                      }}
-                    >
-                      {plant.isActive ? 'Deactivate' : 'Activate'}
-                    </button>
-                  </div>
+<div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+  <button
+    style={{
+      padding: '6px 12px',
+      backgroundColor: '#007bff',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '12px'
+    }}
+  >
+    Edit
+  </button>
+  <button
+    onClick={() => {
+      const currentStock = plant.stock;
+      const newStock = prompt(
+        `Current stock: ${currentStock}\n\nOptions:\n` +
+        `• Enter a number to set new stock (e.g., "5" sets stock to 5)\n` +
+        `• Enter "-1" to decrease by 1\n` +
+        `• Enter "0" to delete all stock\n` +
+        `• Enter "delete" to remove plant completely\n\n` +
+        `What would you like to do?`
+      );
+      
+      if (newStock === null) return; // User cancelled
+      
+      const handleStockUpdate = async (updateData) => {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(`http://localhost:5000/api/plants/${plant._id}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updateData)
+          });
+          
+          if (response.ok) {
+            fetchMyPlants();
+            alert('Stock updated successfully!');
+          } else {
+            alert('Failed to update stock');
+          }
+        } catch (error) {
+          console.error('Error updating stock:', error);
+          alert('Failed to update stock');
+        }
+      };
+      
+      const handleDelete = async () => {
+        if (!window.confirm('Are you sure you want to permanently delete this plant?')) return;
+        
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(`http://localhost:5000/api/plants/${plant._id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            fetchMyPlants();
+            alert('Plant deleted successfully!');
+          } else {
+            alert('Failed to delete plant');
+          }
+        } catch (error) {
+          console.error('Error deleting plant:', error);
+          alert('Failed to delete plant');
+        }
+      };
+      
+      if (newStock.toLowerCase() === 'delete') {
+        handleDelete();
+      } else if (newStock === '-1') {
+        const updatedStock = Math.max(0, currentStock - 1);
+        handleStockUpdate({ stock: updatedStock });
+      } else {
+        const stockValue = parseInt(newStock);
+        if (!isNaN(stockValue) && stockValue >= 0) {
+          handleStockUpdate({ stock: stockValue });
+        } else {
+          alert('Invalid input. Please enter a valid number or "delete"');
+        }
+      }
+    }}
+    style={{
+      padding: '6px 12px',
+      backgroundColor: '#ffc107',
+      color: 'black',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '12px'
+    }}
+  >
+    Manage Stock
+  </button>
+</div>
                 </div>
               ))}
             </div>

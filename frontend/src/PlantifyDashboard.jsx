@@ -3,6 +3,9 @@ import ForestRestoration from "./components/ForestRestoration";
 import PlantShop from './components/PlantShop'; // Import the same PlantShop component
 import { useAuth } from './components/AuthSystem';
 
+
+
+
 const PlantifyDashboard = () => {
   const { user, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');

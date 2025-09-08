@@ -863,40 +863,81 @@ app.get('/api/orders/my', authenticateToken, async (req, res) => {
   }
 });
 
-// Get all orders (admin only)
-app.get('/api/orders', authenticateToken, requireRole(['admin']), async (req, res) => {
+// Get all orders (admin and nursery) - UPDATED
+app.get('/api/orders', authenticateToken, requireRole(['admin', 'nursery']), async (req, res) => {
   try {
-    const { status, page = 1, limit = 10 } = req.query;
+    const { status, limit = 100, customerId } = req.query;
     
     let query = {};
+    
+    // For nursery owners, only show orders containing their plants
+    if (req.user.role === 'nursery') {
+      const nurseryPlants = await Plant.find({ nurseryId: req.user.userId }).select('_id');
+      const plantIds = nurseryPlants.map(p => p._id);
+      query['items.plantId'] = { $in: plantIds };
+    }
+    
+    // Filter by customer if specified
+    if (customerId) {
+      const customer = await User.findById(customerId);
+      if (customer) {
+        query.$or = [
+          { userId: customerId },
+          { customerEmail: customer.email }
+        ];
+      }
+    }
+    
     if (status && status !== 'all') {
       query.status = status;
     }
     
-    const skip = (page - 1) * limit;
-    
     const orders = await Order.find(query)
-      .populate('userId', 'name email')
-      .populate('items.plantId', 'name image category')
+      .populate('userId', 'name email phone')
+      .populate('items.plantId', 'name image category price')
       .sort({ createdAt: -1 })
-      .skip(skip)
       .limit(parseInt(limit));
       
-    const totalOrders = await Order.countDocuments(query);
-    
-    res.json({
-      orders,
-      pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(totalOrders / limit),
-        totalOrders,
-        hasNext: page < Math.ceil(totalOrders / limit),
-        hasPrev: page > 1
-      }
-    });
+    res.json(orders);
   } catch (error) {
     console.error('Error fetching orders:', error);
     res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+});
+
+// Update order status (admin and nursery)
+app.put('/api/orders/:id', authenticateToken, requireRole(['admin', 'nursery']), async (req, res) => {
+  try {
+    const { status } = req.body;
+    const orderId = req.params.id;
+    
+    if (!['pending', 'processing', 'shipped', 'delivered', 'cancelled'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    
+    const order = await Order.findByIdAndUpdate(
+      orderId,
+      { 
+        status,
+        updatedAt: new Date()
+      },
+      { new: true }
+    ).populate('items.plantId', 'name image category');
+    
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    console.log(`✅ Order ${order.orderNumber} status updated to: ${status}`);
+    
+    res.json({
+      success: true,
+      message: 'Order status updated successfully',
+      order
+    });
+  } catch (error) {
+    console.error('Error updating order:', error);
+    res.status(500).json({ error: 'Failed to update order status' });
   }
 });
 
@@ -965,7 +1006,7 @@ app.get('/api/orders/:id', authenticateToken, async (req, res) => {
 
 // ==================== DASHBOARD ANALYTICS ROUTES ====================
 
-// Get dashboard statistics (admin only)
+// Get dashboard statistics (admin only) - UPDATED
 app.get('/api/dashboard/stats', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
     const totalUsers = await User.countDocuments({ role: 'user', isActive: true });
@@ -997,6 +1038,30 @@ app.get('/api/dashboard/stats', authenticateToken, requireRole(['admin']), async
       .limit(5)
       .select('orderNumber customerName total status createdAt');
     
+    // Customer metrics
+    const thisMonth = new Date();
+    const lastMonth = new Date(thisMonth.getFullYear(), thisMonth.getMonth() - 1, 1);
+    
+    const newCustomersThisMonth = await User.countDocuments({
+      role: 'user',
+      createdAt: { $gte: new Date(thisMonth.getFullYear(), thisMonth.getMonth(), 1) }
+    });
+    
+    const newCustomersLastMonth = await User.countDocuments({
+      role: 'user',
+      createdAt: { 
+        $gte: lastMonth,
+        $lt: new Date(thisMonth.getFullYear(), thisMonth.getMonth(), 1)
+      }
+    });
+    
+    // Active customers (ordered in last 30 days)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const activeCustomers = await Order.distinct('userId', {
+      createdAt: { $gte: thirtyDaysAgo },
+      userId: { $exists: true }
+    });
+    
     res.json({
       stats: {
         totalUsers,
@@ -1006,7 +1071,13 @@ app.get('/api/dashboard/stats', authenticateToken, requireRole(['admin']), async
         pendingOrders,
         completedOrders,
         totalRevenue: totalRevenue[0]?.total || 0,
-        outOfStockPlants
+        outOfStockPlants,
+        // New customer metrics
+        newCustomersThisMonth,
+        newCustomersLastMonth,
+        customerGrowth: newCustomersLastMonth > 0 ? 
+          ((newCustomersThisMonth - newCustomersLastMonth) / newCustomersLastMonth * 100).toFixed(1) : 0,
+        activeCustomers: activeCustomers.length
       },
       lowStockPlants,
       recentOrders
@@ -1080,12 +1151,12 @@ app.get('/api/dashboard/nursery-stats', authenticateToken, requireRole(['nursery
   }
 });
 
-// ==================== USER MANAGEMENT ROUTES (ADMIN ONLY) ====================
+// ==================== UPDATED USER MANAGEMENT ROUTES ====================
 
-// Get all users (admin only)
+// Get all users with better filtering (UPDATED)
 app.get('/api/admin/users', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
-    const { role, page = 1, limit = 10, search } = req.query;
+    const { role, page = 1, limit = 100, search, format = 'paginated' } = req.query;
     
     let query = {};
     if (role && role !== 'all') {
@@ -1095,7 +1166,8 @@ app.get('/api/admin/users', authenticateToken, requireRole(['admin']), async (re
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } }
       ];
     }
     
@@ -1109,6 +1181,12 @@ app.get('/api/admin/users', authenticateToken, requireRole(['admin']), async (re
       
     const totalUsers = await User.countDocuments(query);
     
+    // For customer management component, return simple array format
+    if (format === 'simple') {
+      return res.json(users);
+    }
+    
+    // Default paginated response
     res.json({
       users,
       pagination: {
@@ -1122,6 +1200,232 @@ app.get('/api/admin/users', authenticateToken, requireRole(['admin']), async (re
   } catch (error) {
     console.error('Error fetching users:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Get customer statistics (NEW ENDPOINT)
+app.get('/api/admin/customer-stats', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { customerId } = req.query;
+    
+    if (customerId) {
+      // Get stats for specific customer
+      const customer = await User.findById(customerId).select('-password');
+      if (!customer) {
+        return res.status(404).json({ error: 'Customer not found' });
+      }
+      
+      const customerOrders = await Order.find({
+        $or: [
+          { userId: customerId },
+          { customerEmail: customer.email }
+        ]
+      }).populate('items.plantId', 'name image category');
+      
+      const totalOrders = customerOrders.length;
+      const completedOrders = customerOrders.filter(order => order.status === 'delivered');
+      const totalSpent = completedOrders.reduce((sum, order) => sum + order.total, 0);
+      const averageOrderValue = completedOrders.length > 0 ? totalSpent / completedOrders.length : 0;
+      const lastOrderDate = customerOrders.length > 0 
+        ? new Date(Math.max(...customerOrders.map(order => new Date(order.createdAt))))
+        : null;
+      
+      return res.json({
+        customer,
+        stats: {
+          totalOrders,
+          completedOrders: completedOrders.length,
+          totalSpent,
+          averageOrderValue,
+          lastOrderDate
+        },
+        orders: customerOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      });
+    }
+    
+    // Get overall customer statistics
+    const totalCustomers = await User.countDocuments({ role: 'user', isActive: true });
+    
+    // Get all orders to calculate customer stats
+    const allOrders = await Order.find({}).populate('userId', 'email');
+    const allUsers = await User.find({ role: 'user' }).select('email createdAt');
+    
+    // Calculate customer metrics
+    const customerMetrics = allUsers.map(user => {
+      const userOrders = allOrders.filter(order => 
+        (order.userId && order.userId.email === user.email) || 
+        order.customerEmail === user.email
+      );
+      
+      const totalOrders = userOrders.length;
+      const completedOrders = userOrders.filter(order => order.status === 'delivered');
+      const totalSpent = completedOrders.reduce((sum, order) => sum + order.total, 0);
+      const averageOrderValue = completedOrders.length > 0 ? totalSpent / completedOrders.length : 0;
+      const lastOrderDate = userOrders.length > 0 
+        ? new Date(Math.max(...userOrders.map(order => new Date(order.createdAt))))
+        : null;
+      
+      return {
+        userId: user._id,
+        email: user.email,
+        createdAt: user.createdAt,
+        totalOrders,
+        completedOrders: completedOrders.length,
+        totalSpent,
+        averageOrderValue,
+        lastOrderDate
+      };
+    });
+    
+    const activeCustomers = customerMetrics.filter(customer => customer.totalOrders > 0);
+    const totalRevenue = activeCustomers.reduce((sum, customer) => sum + customer.totalSpent, 0);
+    const averageLifetimeValue = activeCustomers.length > 0 ? totalRevenue / activeCustomers.length : 0;
+    
+    // Customer segmentation
+    const vipCustomers = activeCustomers.filter(c => c.totalSpent > 10000);
+    const regularCustomers = activeCustomers.filter(c => c.totalSpent >= 5000 && c.totalSpent <= 10000);
+    const newCustomers = activeCustomers.filter(c => c.totalSpent > 0 && c.totalSpent < 5000);
+    const inactiveCustomers = customerMetrics.filter(c => c.totalOrders === 0);
+    
+    // Recent activity
+    const now = Date.now();
+    const recentlyActive = activeCustomers.filter(c => 
+      c.lastOrderDate && (now - c.lastOrderDate.getTime()) < 7 * 24 * 60 * 60 * 1000
+    );
+    const atRisk = activeCustomers.filter(c => 
+      c.lastOrderDate && (now - c.lastOrderDate.getTime()) > 30 * 24 * 60 * 60 * 1000
+    );
+    
+    // Monthly growth
+    const thisMonth = new Date();
+    const newThisMonth = allUsers.filter(user => {
+      const joinDate = new Date(user.createdAt);
+      return joinDate.getMonth() === thisMonth.getMonth() && 
+             joinDate.getFullYear() === thisMonth.getFullYear();
+    });
+    
+    res.json({
+      overview: {
+        totalCustomers,
+        activeCustomers: activeCustomers.length,
+        totalRevenue,
+        averageLifetimeValue,
+        newThisMonth: newThisMonth.length
+      },
+      segmentation: {
+        vip: vipCustomers.length,
+        regular: regularCustomers.length,
+        new: newCustomers.length,
+        inactive: inactiveCustomers.length
+      },
+      activity: {
+        recentlyActive: recentlyActive.length,
+        atRisk: atRisk.length,
+        retentionRate: activeCustomers.length > 0 ? 
+          (activeCustomers.filter(c => c.totalOrders > 1).length / activeCustomers.length) * 100 : 0
+      },
+      topCustomers: activeCustomers
+        .sort((a, b) => b.totalSpent - a.totalSpent)
+        .slice(0, 10)
+        .map(customer => ({
+          ...customer,
+          customerDetails: allUsers.find(u => u._id.toString() === customer.userId.toString())
+        }))
+    });
+    
+  } catch (error) {
+    console.error('Error fetching customer stats:', error);
+    res.status(500).json({ error: 'Failed to fetch customer statistics' });
+  }
+});
+
+// Get customer order history (NEW ENDPOINT)
+app.get('/api/admin/customer/:id/orders', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const customerId = req.params.id;
+    
+    const customer = await User.findById(customerId).select('-password');
+    if (!customer) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+    
+    const orders = await Order.find({
+      $or: [
+        { userId: customerId },
+        { customerEmail: customer.email }
+      ]
+    })
+    .populate('items.plantId', 'name image category price')
+    .sort({ createdAt: -1 });
+    
+    res.json({
+      customer,
+      orders
+    });
+    
+  } catch (error) {
+    console.error('Error fetching customer orders:', error);
+    res.status(500).json({ error: 'Failed to fetch customer orders' });
+  }
+});
+
+// Customer activity report (NEW ENDPOINT)
+app.get('/api/admin/customer-activity-report', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { period = '30' } = req.query; // days
+    const daysAgo = parseInt(period);
+    const startDate = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+    
+    // Get customers and their recent orders
+    const recentOrders = await Order.find({
+      createdAt: { $gte: startDate }
+    }).populate('userId', 'name email');
+    
+    const allCustomers = await User.find({ role: 'user' }).select('name email createdAt');
+    
+    // Group by customer
+    const customerActivity = {};
+    
+    recentOrders.forEach(order => {
+      const customerKey = order.userId ? order.userId.email : order.customerEmail;
+      if (!customerActivity[customerKey]) {
+        customerActivity[customerKey] = {
+          customerInfo: order.userId || { email: order.customerEmail, name: order.customerName },
+          orders: [],
+          totalSpent: 0,
+          orderCount: 0
+        };
+      }
+      customerActivity[customerKey].orders.push(order);
+      customerActivity[customerKey].totalSpent += order.total;
+      customerActivity[customerKey].orderCount += 1;
+    });
+    
+    // Convert to array and sort
+    const activityReport = Object.values(customerActivity)
+      .sort((a, b) => b.totalSpent - a.totalSpent);
+    
+    // Get inactive customers (no orders in period)
+    const activeEmails = Object.keys(customerActivity);
+    const inactiveCustomers = allCustomers.filter(customer => 
+      !activeEmails.includes(customer.email)
+    );
+    
+    res.json({
+      period: `Last ${daysAgo} days`,
+      summary: {
+        activeCustomers: activityReport.length,
+        inactiveCustomers: inactiveCustomers.length,
+        totalRevenue: activityReport.reduce((sum, customer) => sum + customer.totalSpent, 0),
+        totalOrders: activityReport.reduce((sum, customer) => sum + customer.orderCount, 0)
+      },
+      activeCustomers: activityReport,
+      inactiveCustomers: inactiveCustomers.slice(0, 50) // Limit to 50 for performance
+    });
+    
+  } catch (error) {
+    console.error('Error generating customer activity report:', error);
+    res.status(500).json({ error: 'Failed to generate activity report' });
   }
 });
 
@@ -1176,7 +1480,8 @@ app.get('/api/health', (req, res) => {
       'File Upload',
       'Order Management',
       'User Management',
-      'Dashboard Analytics'
+      'Dashboard Analytics',
+      'Customer Management'
     ]
   });
 });
@@ -1347,8 +1652,11 @@ app.listen(PORT, () => {
   console.log('      GET  /api/dashboard/stats');
   console.log('      GET  /api/dashboard/nursery-stats');
   
-  console.log('   👥 Admin:');
+  console.log('   👥 Admin & Customer Management:');
   console.log('      GET  /api/admin/users');
+  console.log('      GET  /api/admin/customer-stats');
+  console.log('      GET  /api/admin/customer/:id/orders');
+  console.log('      GET  /api/admin/customer-activity-report');
   console.log('      PATCH /api/admin/users/:id/toggle-status');
   
   console.log('\n✨ Ready to serve requests!');

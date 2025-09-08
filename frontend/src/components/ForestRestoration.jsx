@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Search, Calendar, MapPin, Users, Star, ArrowRight, Play, Check, Phone, Mail, MessageCircle, Leaf } from 'lucide-react';
 
+
+
 export default function PlantifyPlatform() {
   const [activeStep, setActiveStep] = useState(0);
   
@@ -160,24 +162,25 @@ export default function PlantifyPlatform() {
         </div>
       </section>
 
-      {/* Main Video Hero Section - Right after ForestRestoration */}
-    <section className="relative h-96 mb-12 rounded-xl overflow-hidden">
-      <iframe
-        className="w-full h-full object-cover"
-        src="https://www.youtube.com/embed/YOUR_VIDEO_ID?autoplay=1&mute=1&loop=1&playlist=YOUR_VIDEO_ID"
-        title="Plant Care Video"
-        frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-      ></iframe>
-      
-      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-        <div className="text-center text-white">
-          <h2 className="text-4xl font-bold mb-4">Discover Plant Care</h2>
-          <p className="text-xl">Learn how to nurture your green companions</p>
-        </div>
-      </div>
-    </section>
+     {/* Main Video Hero Section - Right after ForestRestoration */}
+<section className="relative h-[500px] mb-12 rounded-xl overflow-hidden">
+  <video
+    className="w-full h-full object-cover"
+    src="/videos/Recording 2025-08-20 002733.mp4"
+    autoPlay
+    muted
+    loop
+    playsInline
+  ></video>
+
+  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+    <div className="text-center text-white">
+      <h2 className="text-4xl font-bold mb-4">Discover Plant Care</h2>
+      <p className="text-xl">Learn how to nurture your green companions</p>
+    </div>
+  </div>
+</section>
+
 
       {/* How it Works Section */}
       <section className="py-20 bg-white">
@@ -237,44 +240,53 @@ export default function PlantifyPlatform() {
           </div>
         </div>
       </section>
-
-      {/* Dual Video Section */}
-      <section className="py-16 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl mb-16">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-gray-800 mb-4">See It In Action</h3>
-            <p className="text-gray-600">Watch how our platform transforms plant care</p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-white rounded-xl p-4 shadow-lg">
-              <div className="h-64 bg-gradient-to-br from-green-200 to-emerald-200 rounded-lg flex items-center justify-center">
-                <div className="text-center text-green-800">
-                  <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Play className="text-white w-8 h-8" />
-                  </div>
-                  <p className="font-semibold">Plant Identification Demo</p>
-                </div>
-              </div>
-              <h4 className="text-lg font-bold mt-4 text-gray-800">Plant Identification</h4>
-              <p className="text-gray-600">AI-powered plant recognition</p>
-            </div>
-            
-            <div className="bg-white rounded-xl p-4 shadow-lg">
-              <div className="h-64 bg-gradient-to-br from-emerald-200 to-lime-200 rounded-lg flex items-center justify-center">
-                <div className="text-center text-green-800">
-                  <div className="w-16 h-16 bg-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Play className="text-white w-8 h-8" />
-                  </div>
-                  <p className="font-semibold">Care Tracking Demo</p>
-                </div>
-              </div>
-              <h4 className="text-lg font-bold mt-4 text-gray-800">Care Tracking</h4>
-              <p className="text-gray-600">Monitor growth and health</p>
-            </div>
-          </div>
+{/* Dual Video Section */}
+<section className="py-16 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl mb-16">
+  <div className="max-w-7xl mx-auto px-6">
+    <div className="text-center mb-12">
+      <h3 className="text-3xl font-bold text-gray-800 mb-4">See It In Action</h3>
+      <p className="text-gray-600">Watch how our platform transforms plant care</p>
+    </div>
+    
+    <div className="grid md:grid-cols-2 gap-8">
+      
+      {/* Plant Identification Video */}
+      <div className="bg-white rounded-xl p-4 shadow-lg">
+        <div className="h-72 bg-black rounded-lg overflow-hidden flex items-center justify-center">
+          <video
+            className="w-full h-full object-contain"
+            src="/videos/Recording 2025-08-20 004517.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+          ></video>
         </div>
-      </section>
+        <h4 className="text-lg font-bold mt-4 text-gray-800">Plant Identification</h4>
+        <p className="text-gray-600">AI-powered plant recognition</p>
+      </div>
+      
+      {/* Care Tracking Video */}
+      <div className="bg-white rounded-xl p-4 shadow-lg">
+        <div className="h-72 bg-black rounded-lg overflow-hidden flex items-center justify-center">
+          <video
+            className="w-full h-full object-contain"
+            src="/videos/Recording 2025-08-20 005418.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+          ></video>
+        </div>
+        <h4 className="text-lg font-bold mt-4 text-gray-800">Care Tracking</h4>
+        <p className="text-gray-600">Monitor growth and health</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
 
       {/* Pricing Section */}
       <section className="py-20 bg-gray-50">

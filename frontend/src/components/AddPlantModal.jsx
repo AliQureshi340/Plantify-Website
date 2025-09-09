@@ -128,76 +128,43 @@ const AddPlantModal = ({ showAddPlant, setShowAddPlant, onPlantAdded }) => {
   if (!showAddPlant) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 2000
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        padding: '30px',
-        borderRadius: '12px',
-        width: '90%',
-        maxWidth: '600px',
-        maxHeight: '90vh',
-        overflowY: 'auto'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ margin: 0 }}>Add New Plant</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-[2000] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-100">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+            Add New Plant
+          </h2>
           <button 
             onClick={() => {
               setShowAddPlant(false);
               resetForm();
             }}
-            style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}
+            className="text-gray-500 hover:text-gray-700 text-3xl font-bold transition-colors duration-200"
           >
-            <X />
+            ×
           </button>
         </div>
 
         <div>
           {/* Image Upload Section - Prominent at the top */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '16px' }}>
+          <div className="mb-6">
+            <label className="block mb-3 font-bold text-gray-700">
               Plant Image *
             </label>
             
             {!imagePreview ? (
               <div 
-                style={{
-                  border: '3px dashed #28a745',
-                  borderRadius: '12px',
-                  padding: '40px 20px',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  backgroundColor: '#f8f9fa',
-                  transition: 'all 0.3s ease'
-                }}
+                className="border-4 border-dashed border-green-400 rounded-2xl p-10 text-center cursor-pointer bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 hover:border-emerald-500 transition-all duration-300 group"
                 onClick={() => document.getElementById('imageInput').click()}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#e8f5e8';
-                  e.target.style.borderColor = '#20c997';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = '#f8f9fa';
-                  e.target.style.borderColor = '#28a745';
-                }}
               >
-                <Upload size={48} style={{ color: '#28a745', marginBottom: '15px' }} />
-                <h4 style={{ margin: '0 0 8px 0', color: '#28a745', fontSize: '18px' }}>
+                <Upload className="w-16 h-16 text-green-600 mx-auto mb-4 group-hover:scale-110 transition-transform duration-300" />
+                <h4 className="text-xl font-bold text-green-700 mb-2">
                   Upload Plant Image
                 </h4>
-                <p style={{ margin: '0 0 8px 0', color: '#666', fontSize: '14px' }}>
+                <p className="text-gray-600 mb-2">
                   Click here to browse and select an image
                 </p>
-                <p style={{ margin: 0, fontSize: '12px', color: '#999' }}>
+                <p className="text-sm text-gray-500">
                   Supports: JPG, PNG, GIF • Max size: 5MB
                 </p>
                 <input
@@ -205,70 +172,35 @@ const AddPlantModal = ({ showAddPlant, setShowAddPlant, onPlantAdded }) => {
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
-                  style={{ display: 'none' }}
+                  className="hidden"
                   required
                 />
               </div>
             ) : (
-              <div style={{ 
-                position: 'relative', 
-                display: 'inline-block',
-                border: '2px solid #28a745',
-                borderRadius: '12px',
-                padding: '8px',
-                backgroundColor: '#f8f9fa'
-              }}>
+              <div className="relative inline-block border-2 border-green-500 rounded-xl p-2 bg-gradient-to-br from-green-50 to-emerald-50">
                 <img
                   src={imagePreview}
                   alt="Plant Preview"
-                  style={{
-                    width: '200px',
-                    height: '200px',
-                    objectFit: 'cover',
-                    borderRadius: '8px',
-                    display: 'block'
-                  }}
+                  className="w-52 h-52 object-cover rounded-lg"
                 />
                 <button
                   type="button"
                   onClick={removeImage}
-                  style={{
-                    position: 'absolute',
-                    top: '4px',
-                    right: '4px',
-                    backgroundColor: '#dc3545',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '32px',
-                    height: '32px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '18px',
-                    fontWeight: 'bold'
-                  }}
+                  className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200"
                   title="Remove image"
                 >
                   ×
                 </button>
-                <div style={{ 
-                  textAlign: 'center', 
-                  marginTop: '8px',
-                  fontSize: '12px',
-                  color: '#28a745',
-                  fontWeight: '600'
-                }}>
+                <div className="text-center mt-2 text-sm text-green-600 font-bold">
                   Image Ready ✓
                 </div>
               </div>
             )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Plant Name *</label>
+              <label className="block mb-2 font-bold text-gray-700">Plant Name *</label>
               <input
                 type="text"
                 name="name"
@@ -276,30 +208,18 @@ const AddPlantModal = ({ showAddPlant, setShowAddPlant, onPlantAdded }) => {
                 onChange={handleInputChange}
                 required
                 placeholder="Enter plant name"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none transition-colors duration-200 hover:border-gray-400"
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Category *</label>
+              <label className="block mb-2 font-bold text-gray-700">Category *</label>
               <select
                 name="category"
                 value={formData.category}
                 onChange={handleInputChange}
                 required
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none transition-colors duration-200 hover:border-gray-400 cursor-pointer"
               >
                 {categories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -308,9 +228,9 @@ const AddPlantModal = ({ showAddPlant, setShowAddPlant, onPlantAdded }) => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Price (Rs) *</label>
+              <label className="block mb-2 font-bold text-gray-700">Price (Rs) *</label>
               <input
                 type="number"
                 name="price"
@@ -320,18 +240,12 @@ const AddPlantModal = ({ showAddPlant, setShowAddPlant, onPlantAdded }) => {
                 min="0"
                 step="0.01"
                 placeholder="Enter price"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none transition-colors duration-200 hover:border-gray-400"
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Stock Quantity *</label>
+              <label className="block mb-2 font-bold text-gray-700">Stock Quantity *</label>
               <input
                 type="number"
                 name="stock"
@@ -340,20 +254,14 @@ const AddPlantModal = ({ showAddPlant, setShowAddPlant, onPlantAdded }) => {
                 required
                 min="0"
                 placeholder="Enter stock quantity"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none transition-colors duration-200 hover:border-gray-400"
               />
             </div>
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
-              Discount (%) <span style={{ color: '#999', fontWeight: 'normal' }}>- Optional</span>
+          <div className="mb-4">
+            <label className="block mb-2 font-bold text-gray-700">
+              Discount (%) <span className="text-gray-400 font-normal text-sm">- Optional</span>
             </label>
             <input
               type="number"
@@ -363,19 +271,13 @@ const AddPlantModal = ({ showAddPlant, setShowAddPlant, onPlantAdded }) => {
               min="0"
               max="100"
               placeholder="Enter discount percentage"
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                fontSize: '14px'
-              }}
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none transition-colors duration-200 hover:border-gray-400"
             />
           </div>
 
-          <div style={{ marginBottom: '25px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
-              Description <span style={{ color: '#999', fontWeight: 'normal' }}>- Optional</span>
+          <div className="mb-6">
+            <label className="block mb-2 font-bold text-gray-700">
+              Description <span className="text-gray-400 font-normal text-sm">- Optional</span>
             </label>
             <textarea
               name="description"
@@ -383,35 +285,18 @@ const AddPlantModal = ({ showAddPlant, setShowAddPlant, onPlantAdded }) => {
               onChange={handleInputChange}
               rows="3"
               placeholder="Enter plant description, care instructions, etc."
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                resize: 'vertical',
-                fontSize: '14px',
-                fontFamily: 'inherit'
-              }}
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none transition-colors duration-200 hover:border-gray-400 resize-vertical"
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <div className="flex gap-3 justify-end">
             <button
               type="button"
               onClick={() => {
                 setShowAddPlant(false);
                 resetForm();
               }}
-              style={{
-                padding: '12px 24px',
-                backgroundColor: '#6c757d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600'
-              }}
+              className="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transform transition-all duration-200"
             >
               Cancel
             </button>
@@ -419,22 +304,22 @@ const AddPlantModal = ({ showAddPlant, setShowAddPlant, onPlantAdded }) => {
               type="button"
               onClick={handleSubmit}
               disabled={loading || !imagePreview}
-              style={{
-                padding: '12px 24px',
-                backgroundColor: loading || !imagePreview ? '#ccc' : '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: loading || !imagePreview ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
+              className={`px-6 py-3 font-semibold rounded-lg shadow-lg hover:shadow-xl transform transition-all duration-200 flex items-center gap-2
+                ${loading || !imagePreview 
+                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:-translate-y-0.5 hover:from-green-600 hover:to-emerald-600'}`}
             >
-              {loading ? 'Adding Plant...' : 'Add Plant'}
-              {!loading && <Plus size={16} />}
+              {loading ? (
+                <>
+                  <span className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                  Adding Plant...
+                </>
+              ) : (
+                <>
+                  Add Plant
+                  <Plus className="w-5 h-5" />
+                </>
+              )}
             </button>
           </div>
         </div>

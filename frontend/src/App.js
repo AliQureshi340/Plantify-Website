@@ -1,7 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, ProtectedRoute } from './components/AuthSystem';
-import NurseryAnimations from "./styles/NurseryAnimations.jsx";
+
+
+
+
 
 
 import PlantifyDashboard from './PlantifyDashboard';
@@ -15,7 +18,7 @@ function App() {
    <AuthProvider>
      <Router>
        <div className="App">
-         <NurseryAnimations />
+         
          <Routes>
            {/* Public Routes */}
            <Route path="/" element={<MainDashboard />} />

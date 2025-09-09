@@ -6,111 +6,77 @@ const PlantDetailsModal = ({ plant, show, onClose, onAddToCart }) => {
   if (!show || !plant) return null;
   
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 2000
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        width: '90%',
-        maxWidth: '800px',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'row'
-      }}>
-        <div style={{ flex: '1', position: 'relative' }}>
+    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-[2000] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col lg:flex-row transform transition-all duration-300 scale-100 hover:scale-[1.02]">
+        <div className="flex-1 relative">
           <img 
             src={plant.image?.startsWith('http') ? plant.image : `http://localhost:5000${plant.image}` || '/images/placeholder.jpg'}
             alt={plant.name}
-            style={{ 
-              width: '100%', 
-              height: '400px', 
-              objectFit: 'cover', 
-              borderRadius: '12px 0 0 12px' 
-            }}
+            className="w-full h-64 lg:h-96 object-cover rounded-t-2xl lg:rounded-l-2xl lg:rounded-tr-none transition-transform duration-500 hover:scale-105"
           />
           {plant.discount > 0 && (
-            <div style={{
-              position: 'absolute',
-              top: '15px',
-              right: '15px',
-              background: '#dc3545',
-              color: 'white',
-              padding: '8px 12px',
-              borderRadius: '20px',
-              fontSize: '14px',
-              fontWeight: 'bold'
-            }}>
+            <div className="absolute top-4 right-4 bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-2 rounded-full text-sm font-bold shadow-lg animate-pulse">
               SALE
             </div>
           )}
         </div>
-        <div style={{ flex: '1', padding: '30px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>{plant.name}</h1>
+        <div className="flex-1 p-6 lg:p-8">
+          <div className="flex justify-between items-start mb-6">
+            <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              {plant.name}
+            </h1>
             <button 
               onClick={onClose}
-              style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}
+              className="text-gray-400 hover:text-gray-600 text-2xl transition-colors duration-200 hover:rotate-90 transform"
             >
               <X />
             </button>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '15px' }}>
+          
+          <div className="flex items-center gap-2 mb-4">
             {[1,2,3,4,5].map(star => (
-              <Star key={star} size={16} style={{ color: '#ffc107' }} fill="#ffc107" />
+              <Star key={star} size={16} className="text-yellow-400 fill-current" />
             ))}
-            <span style={{ marginLeft: '8px', color: '#666' }}>(15 customer reviews)</span>
+            <span className="ml-2 text-sm text-gray-600">(15 customer reviews)</span>
           </div>
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#28a745' }}>
+          
+          <div className="mb-6">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                 Rs {(plant.price - (plant.price * (plant.discount || 0) / 100)).toLocaleString()}
               </span>
               {plant.discount > 0 && (
-                <span style={{ fontSize: '18px', color: '#999', textDecoration: 'line-through' }}>
+                <span className="text-lg text-gray-400 line-through">
                   Rs {plant.price.toLocaleString()}
                 </span>
               )}
             </div>
           </div>
-          <div style={{ marginBottom: '20px' }}>
-            <p style={{ color: '#666', lineHeight: '1.6' }}>
+          
+          <div className="mb-6">
+            <p className="text-gray-600 leading-relaxed">
               {plant.description || 'Beautiful plant perfect for your home or garden. Easy to care for and adds natural beauty to any space.'}
             </p>
           </div>
-          <div style={{ marginBottom: '20px', color: '#666' }}>
-            <p><strong>CATEGORY:</strong> {plant.category.toUpperCase()}</p>
-            <p><strong>Stock:</strong> {plant.stock} units available</p>
+          
+          <div className="mb-6 space-y-2 text-gray-600">
+            <p><span className="font-semibold text-gray-800">CATEGORY:</span> {plant.category.toUpperCase()}</p>
+            <p><span className="font-semibold text-gray-800">Stock:</span> {plant.stock} units available</p>
           </div>
+          
           <button
             onClick={() => {
               onAddToCart(plant);
               onClose();
             }}
             disabled={plant.stock === 0}
-            style={{
-              width: '100%',
-              padding: '15px',
-              backgroundColor: plant.stock === 0 ? '#ccc' : '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: plant.stock === 0 ? 'not-allowed' : 'pointer',
-              fontSize: '16px',
-              fontWeight: 'bold'
-            }}
+            className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${
+              plant.stock === 0 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                : 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 shadow-lg'
+            }`}
           >
-            Add To Cart
+            {plant.stock === 0 ? 'Out of Stock' : 'Add To Cart'}
           </button>
         </div>
       </div>
@@ -133,223 +99,141 @@ const CheckoutModal = ({
   if (!showCheckout) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 2000
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        padding: '30px',
-        borderRadius: '12px',
-        width: '90%',
-        maxWidth: '500px',
-        maxHeight: '90vh',
-        overflowY: 'auto'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ margin: 0 }}>Checkout</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-[2000] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 lg:p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-100">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+            Checkout
+          </h2>
           <button 
             onClick={() => setShowCheckout(false)}
-            style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}
+            className="text-gray-400 hover:text-gray-600 text-2xl transition-colors duration-200 hover:rotate-90 transform"
           >
             <X />
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Full Name *</label>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-gray-700">Full Name *</label>
             <input 
               type="text"
               value={customerInfo.name}
               onChange={(e) => setCustomerInfo(prev => ({...prev, name: e.target.value}))}
               required
-              style={{ 
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                fontSize: '16px'
-              }}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors duration-200"
             />
           </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Email *</label>
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-gray-700">Email *</label>
             <input 
               type="email"
               value={customerInfo.email}
               onChange={(e) => setCustomerInfo(prev => ({...prev, email: e.target.value}))}
               required
-              style={{ 
-                width: '100%', 
-                padding: '12px', 
-                border: '1px solid #ddd', 
-                borderRadius: '8px',
-                fontSize: '16px'
-              }}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors duration-200"
             />
           </div>
         </div>
 
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Phone *</label>
+        <div className="mb-4">
+          <label className="block text-sm font-bold text-gray-700 mb-2">Phone *</label>
           <input 
             type="tel"
             value={customerInfo.phone}
             onChange={(e) => setCustomerInfo(prev => ({...prev, phone: e.target.value}))}
             required
-            style={{ 
-              width: '100%', 
-              padding: '12px', 
-              border: '1px solid #ddd', 
-              borderRadius: '8px',
-              fontSize: '16px'
-            }}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors duration-200"
           />
         </div>
 
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Address *</label>
+        <div className="mb-4">
+          <label className="block text-sm font-bold text-gray-700 mb-2">Address *</label>
           <textarea 
             value={customerInfo.address}
             onChange={(e) => setCustomerInfo(prev => ({...prev, address: e.target.value}))}
             required
             rows="3"
-            style={{ 
-              width: '100%', 
-              padding: '12px', 
-              border: '1px solid #ddd', 
-              borderRadius: '8px',
-              resize: 'vertical',
-              fontSize: '16px'
-            }}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors duration-200 resize-none"
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>City *</label>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-gray-700">City *</label>
             <input 
               type="text"
               value={customerInfo.city}
               onChange={(e) => setCustomerInfo(prev => ({...prev, city: e.target.value}))}
               required
-              style={{ 
-                width: '100%', 
-                padding: '12px', 
-                border: '1px solid #ddd', 
-                borderRadius: '8px',
-                fontSize: '16px'
-              }}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors duration-200"
             />
           </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Postal Code</label>
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-gray-700">Postal Code</label>
             <input 
               type="text"
               value={customerInfo.postalCode}
               onChange={(e) => setCustomerInfo(prev => ({...prev, postalCode: e.target.value}))}
-              style={{ 
-                width: '100%', 
-                padding: '12px', 
-                border: '1px solid #ddd', 
-                borderRadius: '8px',
-                fontSize: '16px'
-              }}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors duration-200"
             />
           </div>
         </div>
 
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600' }}>Delivery Option</label>
-          <div style={{ display: 'flex', gap: '15px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="mb-6">
+          <label className="block text-sm font-bold text-gray-700 mb-3">Delivery Option</label>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-green-500 transition-colors duration-200">
               <input 
                 type="radio"
                 name="deliveryType"
                 value="delivery"
                 checked={deliveryType === 'delivery'}
                 onChange={(e) => setDeliveryType(e.target.value)}
+                className="text-green-500"
               />
-              <Truck size={18} />
-              Home Delivery
+              <Truck size={20} className="text-green-600" />
+              <span className="font-semibold">Home Delivery</span>
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-green-500 transition-colors duration-200">
               <input 
                 type="radio"
                 name="deliveryType"
                 value="pickup"
                 checked={deliveryType === 'pickup'}
                 onChange={(e) => setDeliveryType(e.target.value)}
+                className="text-green-500"
               />
-              <MapPin size={18} />
-              Store Pickup
+              <MapPin size={20} className="text-green-600" />
+              <span className="font-semibold">Store Pickup</span>
             </label>
           </div>
         </div>
 
-        <div style={{ 
-          backgroundColor: '#f8f9fa', 
-          padding: '15px', 
-          borderRadius: '8px', 
-          marginBottom: '20px' 
-        }}>
-          <h4 style={{ margin: '0 0 10px 0' }}>Order Summary</h4>
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-2xl mb-6">
+          <h4 className="text-lg font-bold text-gray-800 mb-4">Order Summary</h4>
           {cart.map(item => {
             const discountedPrice = item.price - calculateDiscountAmount(item);
             return (
-              <div key={item._id} style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                marginBottom: '5px' 
-              }}>
-                <span>{item.name} x {item.quantity}</span>
-                <span>Rs {(discountedPrice * item.quantity).toLocaleString()}</span>
+              <div key={item._id} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
+                <span className="text-gray-700">{item.name} × {item.quantity}</span>
+                <span className="font-semibold text-gray-800">Rs {(discountedPrice * item.quantity).toLocaleString()}</span>
               </div>
             );
           })}
-          <div style={{ 
-            borderTop: '1px solid #ddd', 
-            paddingTop: '10px', 
-            marginTop: '10px',
-            display: 'flex', 
-            justifyContent: 'space-between',
-            fontWeight: 'bold',
-            fontSize: '18px'
-          }}>
-            <span>Total:</span>
-            <span style={{ color: '#28a745' }}>Rs {calculateTotal().toLocaleString()}</span>
+          <div className="flex justify-between items-center pt-4 mt-4 border-t-2 border-green-500">
+            <span className="text-xl font-bold text-gray-800">Total:</span>
+            <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              Rs {calculateTotal().toLocaleString()}
+            </span>
           </div>
         </div>
 
         <button
-          type="button"
           onClick={placeOrder}
-          style={{
-            width: '100%',
-            padding: '15px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-          }}
+          className="w-full py-4 px-6 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold text-lg rounded-2xl shadow-lg hover:shadow-xl hover:from-green-600 hover:to-emerald-600 transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3"
         >
-          <Check size={18} />
+          <Check size={20} />
           Place Order
         </button>
       </div>
@@ -392,269 +276,181 @@ const PlantInventory = ({ onClose, onPlantAdded }) => {
   }, []);
 
   const handlePlantAdded = () => {
-    fetchMyPlants(); // Refresh the plants list
+    fetchMyPlants();
     if (onPlantAdded) onPlantAdded();
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        width: '95%',
-        maxWidth: '1000px',
-        height: '90vh',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        <div style={{
-          padding: '20px',
-          borderBottom: '1px solid #eee',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Package size={24} />
+    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col">
+        <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-2xl">
+          <h2 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent flex items-center gap-3">
+            <Package size={28} className="text-green-600" />
             Plant Inventory
           </h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setShowAddPlant(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 15px',
-                backgroundColor: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:from-green-600 hover:to-emerald-600 transform hover:scale-105 transition-all duration-300"
             >
-              <Plus size={18} />
+              <Plus size={20} />
               Add Plant
             </button>
             <button
               onClick={onClose}
-              style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}
+              className="text-gray-400 hover:text-gray-600 text-2xl transition-colors duration-200 hover:rotate-90 transform"
             >
               <X />
             </button>
           </div>
         </div>
 
-        <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
+        <div className="flex-1 p-6 overflow-y-auto bg-gradient-to-br from-gray-50 to-green-50">
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '50px' }}>
-              <p>Loading your plants...</p>
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-500 mx-auto mb-4"></div>
+                <p className="text-lg text-gray-600">Loading your plants...</p>
+              </div>
             </div>
           ) : myPlants.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>
-              <Package size={48} style={{ marginBottom: '20px', opacity: 0.5 }} />
-              <h3>No plants in your inventory</h3>
-              <p>Start by adding your first plant to the inventory.</p>
-              <button
-                onClick={() => setShowAddPlant(true)}
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  marginTop: '10px'
-                }}
-              >
-                Add Your First Plant
-              </button>
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <Package size={64} className="mx-auto mb-6 text-gray-400 opacity-50" />
+                <h3 className="text-2xl font-bold text-gray-600 mb-4">No plants in your inventory</h3>
+                <p className="text-gray-500 mb-6">Start by adding your first plant to the inventory.</p>
+                <button
+                  onClick={() => setShowAddPlant(true)}
+                  className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl hover:from-green-600 hover:to-emerald-600 transform hover:scale-105 transition-all duration-300"
+                >
+                  Add Your First Plant
+                </button>
+              </div>
             </div>
           ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: '20px'
-            }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {myPlants.map(plant => (
-                <div key={plant._id} style={{
-                  backgroundColor: 'white',
-                  border: '1px solid #eee',
-                  borderRadius: '12px',
-                  padding: '15px',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                }}>
-                  <div style={{ position: 'relative', marginBottom: '10px' }}>
+                <div key={plant._id} className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+                  <div className="relative mb-4">
                     <img
                       src={plant.image?.startsWith('http') ? plant.image : `http://localhost:5000${plant.image}` || '/images/placeholder.jpg'}
                       alt={plant.name}
-                      style={{
-                        width: '100%',
-                        height: '150px',
-                        objectFit: 'cover',
-                        borderRadius: '8px'
-                      }}
+                      className="w-full h-40 object-cover rounded-xl"
                     />
                     {plant.discount > 0 && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '8px',
-                        right: '8px',
-                        backgroundColor: '#dc3545',
-                        color: 'white',
-                        padding: '4px 8px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: 'bold'
-                      }}>
+                      <div className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-bold">
                         -{plant.discount}%
                       </div>
                     )}
                   </div>
-                  <h4 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>{plant.name}</h4>
-                  <p style={{
-                    margin: '0 0 8px 0',
-                    color: '#666',
-                    fontSize: '14px',
-                    backgroundColor: '#f8f9fa',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    display: 'inline-block'
-                  }}>
+                  
+                  <h4 className="text-lg font-bold text-gray-800 mb-2">{plant.name}</h4>
+                  <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-sm font-semibold rounded-full mb-3">
                     {plant.category}
-                  </p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  </span>
+                  
+                  <div className="flex justify-between items-center mb-4">
                     <div>
-                      <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#28a745' }}>
+                      <span className="text-xl font-bold text-green-600">
                         Rs {plant.price.toLocaleString()}
                       </span>
                       {plant.discount > 0 && (
-                        <div style={{ fontSize: '12px', color: '#dc3545' }}>
+                        <div className="text-sm text-red-500 font-semibold">
                           {plant.discount}% off
                         </div>
                       )}
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '14px', color: '#666' }}>Stock: {plant.stock}</div>
-                      <div style={{ fontSize: '12px', color: '#999' }}>Sold: {plant.sold || 0}</div>
+                    <div className="text-right">
+                      <div className="text-sm text-gray-600">Stock: {plant.stock}</div>
+                      <div className="text-xs text-gray-400">Sold: {plant.sold || 0}</div>
                     </div>
                   </div>
-<div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-  <button
-    style={{
-      padding: '6px 12px',
-      backgroundColor: '#007bff',
-      color: 'white',
-      border: 'none',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      fontSize: '12px'
-    }}
-  >
-    Edit
-  </button>
-  <button
-    onClick={() => {
-      const currentStock = plant.stock;
-      const newStock = prompt(
-        `Current stock: ${currentStock}\n\nOptions:\n` +
-        `• Enter a number to set new stock (e.g., "5" sets stock to 5)\n` +
-        `• Enter "-1" to decrease by 1\n` +
-        `• Enter "0" to delete all stock\n` +
-        `• Enter "delete" to remove plant completely\n\n` +
-        `What would you like to do?`
-      );
-      
-      if (newStock === null) return; // User cancelled
-      
-      const handleStockUpdate = async (updateData) => {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(`http://localhost:5000/api/plants/${plant._id}`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(updateData)
-          });
-          
-          if (response.ok) {
-            fetchMyPlants();
-            alert('Stock updated successfully!');
-          } else {
-            alert('Failed to update stock');
-          }
-        } catch (error) {
-          console.error('Error updating stock:', error);
-          alert('Failed to update stock');
-        }
-      };
-      
-      const handleDelete = async () => {
-        if (!window.confirm('Are you sure you want to permanently delete this plant?')) return;
-        
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(`http://localhost:5000/api/plants/${plant._id}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          if (response.ok) {
-            fetchMyPlants();
-            alert('Plant deleted successfully!');
-          } else {
-            alert('Failed to delete plant');
-          }
-        } catch (error) {
-          console.error('Error deleting plant:', error);
-          alert('Failed to delete plant');
-        }
-      };
-      
-      if (newStock.toLowerCase() === 'delete') {
-        handleDelete();
-      } else if (newStock === '-1') {
-        const updatedStock = Math.max(0, currentStock - 1);
-        handleStockUpdate({ stock: updatedStock });
-      } else {
-        const stockValue = parseInt(newStock);
-        if (!isNaN(stockValue) && stockValue >= 0) {
-          handleStockUpdate({ stock: stockValue });
-        } else {
-          alert('Invalid input. Please enter a valid number or "delete"');
-        }
-      }
-    }}
-    style={{
-      padding: '6px 12px',
-      backgroundColor: '#ffc107',
-      color: 'black',
-      border: 'none',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      fontSize: '12px'
-    }}
-  >
-    Manage Stock
-  </button>
-</div>
+
+                  <div className="flex gap-2">
+                    <button className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-bold rounded-lg hover:from-blue-600 hover:to-indigo-600 transform hover:scale-105 transition-all duration-200">
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        const currentStock = plant.stock;
+                        const newStock = prompt(
+                          `Current stock: ${currentStock}\n\nOptions:\n` +
+                          `• Enter a number to set new stock (e.g., "5" sets stock to 5)\n` +
+                          `• Enter "-1" to decrease by 1\n` +
+                          `• Enter "0" to delete all stock\n` +
+                          `• Enter "delete" to remove plant completely\n\n` +
+                          `What would you like to do?`
+                        );
+                        
+                        if (newStock === null) return;
+                        
+                        const handleStockUpdate = async (updateData) => {
+                          try {
+                            const token = localStorage.getItem('token');
+                            const response = await fetch(`http://localhost:5000/api/plants/${plant._id}`, {
+                              method: 'PUT',
+                              headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                              },
+                              body: JSON.stringify(updateData)
+                            });
+                            
+                            if (response.ok) {
+                              fetchMyPlants();
+                              alert('Stock updated successfully!');
+                            } else {
+                              alert('Failed to update stock');
+                            }
+                          } catch (error) {
+                            console.error('Error updating stock:', error);
+                            alert('Failed to update stock');
+                          }
+                        };
+                        
+                        const handleDelete = async () => {
+                          if (!window.confirm('Are you sure you want to permanently delete this plant?')) return;
+                          
+                          try {
+                            const token = localStorage.getItem('token');
+                            const response = await fetch(`http://localhost:5000/api/plants/${plant._id}`, {
+                              method: 'DELETE',
+                              headers: {
+                                'Authorization': `Bearer ${token}`
+                              }
+                            });
+                            
+                            if (response.ok) {
+                              fetchMyPlants();
+                              alert('Plant deleted successfully!');
+                            } else {
+                              alert('Failed to delete plant');
+                            }
+                          } catch (error) {
+                            console.error('Error deleting plant:', error);
+                            alert('Failed to delete plant');
+                          }
+                        };
+                        
+                        if (newStock.toLowerCase() === 'delete') {
+                          handleDelete();
+                        } else if (newStock === '-1') {
+                          const updatedStock = Math.max(0, currentStock - 1);
+                          handleStockUpdate({ stock: updatedStock });
+                        } else {
+                          const stockValue = parseInt(newStock);
+                          if (!isNaN(stockValue) && stockValue >= 0) {
+                            handleStockUpdate({ stock: stockValue });
+                          } else {
+                            alert('Invalid input. Please enter a valid number or "delete"');
+                          }
+                        }
+                      }}
+                      className="flex-1 px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-sm font-bold rounded-lg hover:from-yellow-600 hover:to-orange-600 transform hover:scale-105 transition-all duration-200"
+                    >
+                      Manage Stock
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -662,7 +458,6 @@ const PlantInventory = ({ onClose, onPlantAdded }) => {
         </div>
       </div>
 
-      {/* Use the external AddPlantModal component */}
       <AddPlantModal
         showAddPlant={showAddPlant}
         setShowAddPlant={setShowAddPlant}
@@ -697,7 +492,6 @@ const PlantShop = () => {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Check authentication and user role
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
@@ -708,7 +502,6 @@ const PlantShop = () => {
         setUser(parsedUser);
         setIsAdmin(parsedUser.role === 'admin' || parsedUser.role === 'nursery');
         
-        // Pre-fill customer info from user data
         setCustomerInfo({
           name: parsedUser.name || '',
           email: parsedUser.email || '',
@@ -737,7 +530,6 @@ const PlantShop = () => {
     }, 0);
   }, [cart]);
 
-  // Fetch plants from API
   const fetchPlants = async () => {
     try {
       const queryParams = new URLSearchParams();
@@ -757,7 +549,6 @@ const PlantShop = () => {
     }
   };
 
-  // Fetch categories from API
   const fetchCategories = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/store/categories');
@@ -842,7 +633,7 @@ const PlantShop = () => {
         setOrderStatus({ success: true, orderId: result.order.orderNumber });
         setCart([]);
         setShowCheckout(false);
-        fetchPlants(); // Refresh plants to update stock
+        fetchPlants();
       } else {
         setOrderStatus({ success: false, message: result.error || 'Failed to place order' });
       }
@@ -871,295 +662,172 @@ const PlantShop = () => {
     const discountedPrice = plant.price - calculateDiscountAmount(plant);
     
     return (
-      <div 
-        style={{ 
-          background: 'white', 
-          borderRadius: '12px', 
-          padding: '20px', 
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-          transition: 'transform 0.2s, box-shadow 0.2s',
-          cursor: 'pointer',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-        onClick={() => {
-          setSelectedPlant(plant);
-          setShowPlantDetails(true);
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-5px)';
-          e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-        }}
-      >
-        <div style={{ position: 'relative', marginBottom: '15px' }}>
-          <img 
-            src={plant.image?.startsWith('http') ? plant.image : `http://localhost:5000${plant.image}` || '/images/placeholder.jpg'}
-            alt={plant.name}
-            style={{ 
-              width: '100%', 
-              height: '200px', 
-              objectFit: 'cover', 
-              borderRadius: '8px' 
-            }}
-          />
-          {plant.discount > 0 && (
-            <div style={{
-              position: 'absolute',
-              top: '10px',
-              right: '10px',
-              background: '#dc3545',
-              color: 'white',
-              padding: '4px 8px',
-              borderRadius: '12px',
-              fontSize: '12px',
-              fontWeight: 'bold'
-            }}>
-              -{plant.discount}%
-            </div>
-          )}
-          {plant.stock < 5 && plant.stock > 0 && (
-            <div style={{
-              position: 'absolute',
-              top: '10px',
-              left: '10px',
-              background: '#ffc107',
-              color: 'black',
-              padding: '4px 8px',
-              borderRadius: '12px',
-              fontSize: '12px',
-              fontWeight: 'bold'
-            }}>
-              Only {plant.stock} left
-            </div>
-          )}
-        </div>
-
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600' }}>{plant.name}</h3>
-          <p style={{ 
-            margin: '0 0 10px 0', 
-            color: '#666', 
-            fontSize: '14px',
-            background: '#f8f9fa',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            display: 'inline-block',
-            width: 'fit-content'
-          }}>
-            {plant.category}
-          </p>
-          
-          <p style={{ 
-            margin: '0 0 15px 0', 
-            color: '#666', 
-            fontSize: '14px',
-            lineHeight: '1.4',
-            flex: 1
-          }}>
-            {plant.description || 'Beautiful plant perfect for your home or garden.'}
-          </p>
-
-          <div style={{ marginBottom: '15px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ 
-                fontSize: '20px', 
-                fontWeight: 'bold', 
-                color: '#28a745' 
-              }}>
-                Rs {discountedPrice.toLocaleString()}
-              </span>
-              {plant.discount > 0 && (
-                <span style={{ 
-                  fontSize: '16px', 
-                  color: '#999', 
-                  textDecoration: 'line-through' 
-                }}>
-                  Rs {plant.price.toLocaleString()}
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-              Stock: {plant.stock} units
-            </div>
+      <div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 overflow-hidden group cursor-pointer">
+        <div 
+          className="p-6 h-full flex flex-col"
+          onClick={() => {
+            setSelectedPlant(plant);
+            setShowPlantDetails(true);
+          }}
+        >
+          <div className="relative mb-4">
+            <img 
+              src={plant.image?.startsWith('http') ? plant.image : `http://localhost:5000${plant.image}` || '/images/placeholder.jpg'}
+              alt={plant.name}
+              className="w-full h-48 object-cover rounded-xl transition-transform duration-500 group-hover:scale-110"
+            />
+            {plant.discount > 0 && (
+              <div className="absolute top-3 right-3 bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg animate-pulse">
+                -{plant.discount}%
+              </div>
+            )}
+            {plant.stock < 5 && plant.stock > 0 && (
+              <div className="absolute top-3 left-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                Only {plant.stock} left
+              </div>
+            )}
           </div>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              addToCart(plant);
-            }}
-            disabled={plant.stock === 0}
-            style={{
-              width: '100%',
-              padding: '12px',
-              backgroundColor: plant.stock === 0 ? '#ccc' : '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: plant.stock === 0 ? 'not-allowed' : 'pointer',
-              fontSize: '16px',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              if (plant.stock > 0) {
-                e.target.style.backgroundColor = '#218838';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (plant.stock > 0) {
-                e.target.style.backgroundColor = '#28a745';
-              }
-            }}
-          >
-            <ShoppingCart size={18} />
-            {plant.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-          </button>
+          <div className="flex-1 flex flex-col">
+            <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-green-600 transition-colors duration-300">
+              {plant.name}
+            </h3>
+            <span className="inline-block px-3 py-1 bg-gradient-to-r from-gray-100 to-green-100 text-gray-700 text-sm font-semibold rounded-full mb-3 w-fit">
+              {plant.category}
+            </span>
+            
+            <p className="text-gray-600 text-sm leading-relaxed mb-4 flex-1">
+              {plant.description || 'Beautiful plant perfect for your home or garden.'}
+            </p>
+
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  Rs {discountedPrice.toLocaleString()}
+                </span>
+                {plant.discount > 0 && (
+                  <span className="text-lg text-gray-400 line-through">
+                    Rs {plant.price.toLocaleString()}
+                  </span>
+                )}
+              </div>
+              <div className="text-sm text-gray-500">
+                Stock: {plant.stock} units
+              </div>
+            </div>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                addToCart(plant);
+              }}
+              disabled={plant.stock === 0}
+              className={`w-full py-3 px-4 font-bold text-sm rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2 ${
+                plant.stock === 0
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 shadow-lg hover:shadow-xl'
+              }`}
+            >
+              <ShoppingCart size={16} />
+              {plant.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+            </button>
+          </div>
         </div>
       </div>
     );
   };
 
   const CartSidebar = () => (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      right: showCart ? 0 : '-400px',
-      width: '400px',
-      height: '100vh',
-      backgroundColor: 'white',
-      boxShadow: '-2px 0 10px rgba(0,0,0,0.1)',
-      transition: 'right 0.3s ease',
-      zIndex: 1000,
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      <div style={{ 
-        padding: '20px', 
-        borderBottom: '1px solid #eee',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <h3 style={{ margin: 0 }}>Shopping Cart ({cart.length})</h3>
-        <button 
-          onClick={() => setShowCart(false)}
-          style={{ 
-            background: 'none', 
-            border: 'none', 
-            fontSize: '24px', 
-            cursor: 'pointer' 
-          }}
-        >
-          <X />
-        </button>
+    <div className={`fixed top-0 right-0 w-96 h-full bg-white shadow-2xl transition-transform duration-300 z-[1000] flex flex-col ${
+      showCart ? 'translate-x-0' : 'translate-x-full'
+    }`}>
+      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+            Shopping Cart ({cart.length})
+          </h3>
+          <button 
+            onClick={() => setShowCart(false)}
+            className="text-gray-400 hover:text-gray-600 text-2xl transition-colors duration-200 hover:rotate-90 transform"
+          >
+            <X />
+          </button>
+        </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+      <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-gray-50 to-white">
         {cart.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#666', marginTop: '50px' }}>
-            Your cart is empty
-          </p>
+          <div className="text-center mt-20">
+            <ShoppingCart size={64} className="mx-auto mb-4 text-gray-300" />
+            <p className="text-gray-500 text-lg">Your cart is empty</p>
+            <p className="text-gray-400 text-sm mt-2">Add some beautiful plants to get started!</p>
+          </div>
         ) : (
-          cart.map(item => {
-            const discountedPrice = item.price - calculateDiscountAmount(item);
-            return (
-              <div key={item._id} style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '15px',
-                padding: '15px 0',
-                borderBottom: '1px solid #eee'
-              }}>
-                <img 
-                  src={item.image?.startsWith('http') ? item.image : `http://localhost:5000${item.image}` || '/images/placeholder.jpg'}
-                  alt={item.name}
-                  style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }}
-                />
-                <div style={{ flex: 1 }}>
-                  <h4 style={{ margin: '0 0 5px 0', fontSize: '14px' }}>{item.name}</h4>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontWeight: 'bold', color: '#28a745' }}>
-                      Rs {discountedPrice.toLocaleString()}
-                    </span>
-                    {item.discount > 0 && (
-                      <span style={{ fontSize: '12px', color: '#999', textDecoration: 'line-through' }}>
-                        Rs {item.price.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
-                    <button 
-                      onClick={() => updateQuantity(item._id, item.quantity - 1)}
-                      style={{ 
-                        width: '24px', 
-                        height: '24px', 
-                        border: '1px solid #ddd', 
-                        background: 'white',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <Minus size={12} />
-                    </button>
-                    <span>{item.quantity}</span>
-                    <button 
-                      onClick={() => updateQuantity(item._id, item.quantity + 1)}
-                      disabled={item.quantity >= item.stock}
-                      style={{ 
-                        width: '24px', 
-                        height: '24px', 
-                        border: '1px solid #ddd', 
-                        background: item.quantity >= item.stock ? '#f5f5f5' : 'white',
-                        cursor: item.quantity >= item.stock ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <Plus size={12} />
-                    </button>
-                    <button 
-                      onClick={() => removeFromCart(item._id)}
-                      style={{ 
-                        marginLeft: '10px',
-                        color: '#dc3545',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <X size={16} />
-                    </button>
+          <div className="space-y-4">
+            {cart.map(item => {
+              const discountedPrice = item.price - calculateDiscountAmount(item);
+              return (
+                <div key={item._id} className="bg-white p-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100">
+                  <div className="flex items-center gap-4">
+                    <img 
+                      src={item.image?.startsWith('http') ? item.image : `http://localhost:5000${item.image}` || '/images/placeholder.jpg'}
+                      alt={item.name}
+                      className="w-16 h-16 object-cover rounded-xl border-2 border-gray-200"
+                    />
+                    <div className="flex-1">
+                      <h4 className="font-bold text-gray-800 mb-1">{item.name}</h4>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-lg font-bold text-green-600">
+                          Rs {discountedPrice.toLocaleString()}
+                        </span>
+                        {item.discount > 0 && (
+                          <span className="text-sm text-gray-400 line-through">
+                            Rs {item.price.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                            className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors duration-200"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span className="w-8 text-center font-semibold">{item.quantity}</span>
+                          <button 
+                            onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                            disabled={item.quantity >= item.stock}
+                            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors duration-200 ${
+                              item.quantity >= item.stock 
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                : 'bg-green-200 hover:bg-green-300 text-green-700'
+                            }`}
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                        <button 
+                          onClick={() => removeFromCart(item._id)}
+                          className="text-red-500 hover:text-red-700 transition-colors duration-200 ml-auto"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </div>
 
       {cart.length > 0 && (
-        <div style={{ padding: '20px', borderTop: '1px solid #eee' }}>
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            marginBottom: '15px'
-          }}>
-            <span style={{ fontSize: '18px', fontWeight: 'bold' }}>Total:</span>
-            <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>
+        <div className="p-6 border-t border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-xl font-bold text-gray-800">Total:</span>
+            <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
               Rs {calculateTotal().toLocaleString()}
             </span>
           </div>
@@ -1168,19 +836,9 @@ const PlantShop = () => {
               setShowCart(false);
               setShowCheckout(true);
             }}
-            style={{
-              width: '100%',
-              padding: '15px',
-              backgroundColor: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              cursor: 'pointer'
-            }}
+            className="w-full py-4 px-6 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold text-lg rounded-2xl shadow-lg hover:shadow-xl hover:from-green-600 hover:to-emerald-600 transform hover:scale-105 transition-all duration-300"
           >
-            Checkout
+            Proceed to Checkout
           </button>
         </div>
       )}
@@ -1191,88 +849,39 @@ const PlantShop = () => {
     if (!orderStatus) return null;
     
     return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 3000
-      }}>
-        <div style={{
-          backgroundColor: 'white',
-          padding: '30px',
-          borderRadius: '12px',
-          textAlign: 'center',
-          maxWidth: '400px'
-        }}>
+      <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-[3000] p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center transform transition-all duration-300 scale-100">
           {orderStatus.success ? (
             <>
-              <div style={{ 
-                width: '60px', 
-                height: '60px', 
-                backgroundColor: '#28a745',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 20px auto'
-              }}>
-                <Check size={30} color="white" />
+              <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                <Check size={40} className="text-white" />
               </div>
-              <h3 style={{ margin: '0 0 10px 0', color: '#28a745' }}>Order Placed Successfully!</h3>
-              <p style={{ margin: '0 0 20px 0', color: '#666' }}>
-                Order ID: {orderStatus.orderId}
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-4">
+                Order Placed Successfully!
+              </h3>
+              <p className="text-gray-600 mb-2">
+                Order ID: <span className="font-semibold">{orderStatus.orderId}</span>
               </p>
-              <p style={{ margin: '0 0 20px 0', color: '#666' }}>
+              <p className="text-gray-600 mb-6">
                 Thank you for your purchase. You will receive a confirmation email shortly.
               </p>
               <button
                 onClick={() => setOrderStatus(null)}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer'
-                }}
+                className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold rounded-xl hover:from-green-600 hover:to-emerald-600 transform hover:scale-105 transition-all duration-300"
               >
                 Continue Shopping
               </button>
             </>
           ) : (
             <>
-              <div style={{ 
-                width: '60px', 
-                height: '60px', 
-                backgroundColor: '#dc3545',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 20px auto'
-              }}>
-                <X size={30} color="white" />
+              <div className="w-20 h-20 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <X size={40} className="text-white" />
               </div>
-              <h3 style={{ margin: '0 0 10px 0', color: '#dc3545' }}>Order Failed</h3>
-              <p style={{ margin: '0 0 20px 0', color: '#666' }}>
-                {orderStatus.message}
-              </p>
+              <h3 className="text-2xl font-bold text-red-600 mb-4">Order Failed</h3>
+              <p className="text-gray-600 mb-6">{orderStatus.message}</p>
               <button
                 onClick={() => setOrderStatus(null)}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer'
-                }}
+                className="px-8 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold rounded-xl hover:from-red-600 hover:to-pink-600 transform hover:scale-105 transition-all duration-300"
               >
                 Try Again
               </button>
@@ -1284,39 +893,22 @@ const PlantShop = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      <header style={{ 
-        backgroundColor: 'white', 
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        padding: '15px 0',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h1 style={{ margin: 0, color: '#28a745', display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+      {/* Header */}
+      <header className="bg-white shadow-xl sticky top-0 z-50 border-b-4 border-green-500">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent flex items-center gap-3">
               🌱 Plantify Shop
             </h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="flex items-center gap-4">
               {user && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginRight: '15px' }}>
-                  <User size={20} style={{ color: '#666' }} />
-                  <span style={{ color: '#666', fontSize: '14px' }}>Welcome, {user.name}</span>
+                <div className="flex items-center gap-3 mr-4 px-4 py-2 bg-gradient-to-r from-gray-100 to-green-100 rounded-2xl">
+                  <User size={20} className="text-gray-600" />
+                  <span className="text-gray-700 font-semibold">Welcome, {user.name}</span>
                   <button
                     onClick={logout}
-                    style={{
-                      padding: '6px 12px',
-                      backgroundColor: '#dc3545',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
+                    className="px-3 py-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-sm font-bold rounded-xl hover:from-red-600 hover:to-pink-600 transform hover:scale-105 transition-all duration-200 flex items-center gap-1"
                   >
                     <LogOut size={14} />
                     Logout
@@ -1327,18 +919,7 @@ const PlantShop = () => {
               {isAdmin && (
                 <button
                   onClick={() => setShowInventory(true)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 15px',
-                    backgroundColor: '#007bff',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '16px'
-                  }}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold rounded-2xl shadow-lg hover:shadow-xl hover:from-blue-600 hover:to-indigo-600 transform hover:scale-105 transition-all duration-300"
                 >
                   <Package size={20} />
                   Inventory
@@ -1347,37 +928,12 @@ const PlantShop = () => {
               
               <button
                 onClick={() => setShowCart(true)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 15px',
-                  backgroundColor: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  position: 'relative'
-                }}
+                className="relative flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold rounded-2xl shadow-lg hover:shadow-xl hover:from-green-600 hover:to-emerald-600 transform hover:scale-105 transition-all duration-300"
               >
                 <ShoppingCart size={20} />
                 Cart ({cart.length})
                 {cart.length > 0 && (
-                  <span style={{
-                    position: 'absolute',
-                    top: '-8px',
-                    right: '-8px',
-                    backgroundColor: '#dc3545',
-                    color: 'white',
-                    borderRadius: '50%',
-                    width: '20px',
-                    height: '20px',
-                    fontSize: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
+                  <span className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
                     {cart.reduce((sum, item) => sum + item.quantity, 0)}
                   </span>
                 )}
@@ -1387,51 +943,30 @@ const PlantShop = () => {
         </div>
       </header>
 
-      <div style={{ 
-        backgroundColor: 'white', 
-        borderBottom: '1px solid #eee',
-        padding: '20px 0'
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '20px', alignItems: 'end' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Search Plants</label>
-              <div style={{ position: 'relative' }}>
-                <Search style={{ 
-                  position: 'absolute', 
-                  left: '12px', 
-                  top: '50%', 
-                  transform: 'translateY(-50%)', 
-                  color: '#666'
-                }} size={18} />
+      {/* Search and Filters */}
+      <div className="bg-white border-b border-gray-200 shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Search Plants</label>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   type="text"
                   placeholder="Search for plants..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 12px 12px 45px',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    fontSize: '16px'
-                  }}
+                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-green-500 focus:outline-none transition-colors duration-200 text-lg"
                 />
               </div>
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Category</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  fontSize: '16px'
-                }}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-green-500 focus:outline-none transition-colors duration-200 text-lg"
               >
                 <option value="all">All Categories</option>
                 {categories.map(category => (
@@ -1441,17 +976,11 @@ const PlantShop = () => {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Sort By</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Sort By</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  fontSize: '16px'
-                }}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-green-500 focus:outline-none transition-colors duration-200 text-lg"
               >
                 <option value="name">Name (A-Z)</option>
                 <option value="price_low">Price (Low to High)</option>
@@ -1464,26 +993,25 @@ const PlantShop = () => {
         </div>
       </div>
 
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '30px 20px' }}>
-        <div style={{ marginBottom: '20px', color: '#666' }}>
-          <p>Showing {plants.length} plants {selectedCategory !== 'all' && `in ${selectedCategory}`}</p>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        <div className="mb-6">
+          <p className="text-gray-600 text-lg">
+            Showing <span className="font-semibold text-gray-800">{plants.length}</span> plants 
+            {selectedCategory !== 'all' && (
+              <span> in <span className="font-semibold text-green-600">{selectedCategory}</span></span>
+            )}
+          </p>
         </div>
 
         {plants.length === 0 ? (
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '60px 20px',
-            color: '#666'
-          }}>
-            <p style={{ fontSize: '18px', marginBottom: '10px' }}>No plants found</p>
-            <p>Try adjusting your search or filter criteria</p>
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4">🌱</div>
+            <h3 className="text-2xl font-bold text-gray-600 mb-4">No plants found</h3>
+            <p className="text-gray-500 text-lg">Try adjusting your search or filter criteria</p>
           </div>
         ) : (
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
-            gap: '25px' 
-          }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {plants.map(plant => (
               <PlantCard key={plant._id} plant={plant} />
             ))}
@@ -1491,6 +1019,7 @@ const PlantShop = () => {
         )}
       </main>
 
+      {/* Components */}
       <CartSidebar />
       
       <CheckoutModal 
@@ -1524,15 +1053,7 @@ const PlantShop = () => {
       
       {showCart && (
         <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.3)',
-            zIndex: 999
-          }}
+          className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm z-[999]"
           onClick={() => setShowCart(false)}
         />
       )}

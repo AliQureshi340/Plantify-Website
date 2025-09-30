@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState } from 'react';
 import { Search, Calendar, MapPin, Users, Star, ArrowRight, Play, Check, Phone, Mail, MessageCircle, Leaf } from 'lucide-react';
 
@@ -5,11 +6,12 @@ export default function PlantifyPlatform() {
   const [activeStep, setActiveStep] = useState(0);
   
   const steps = [
-    { icon: '🌱', title: 'Plant Profile Setup', desc: 'Create your plant collection with detailed profiles and care schedules.' },
-    { icon: '📷', title: 'Identify & Track', desc: 'Use AI identification and track your plants growth and health progress.' },
-    { icon: '🌿', title: 'Care Reminders', desc: 'Get timely watering, fertilizing, and pruning notifications.' },
-    { icon: '📊', title: 'Growth Analytics', desc: 'Monitor plant health with detailed analytics and insights.' },
-    { icon: '🌳', title: 'Community & Share', desc: 'Connect with plant enthusiasts and share your gardening journey.' }
+    
+    { icon: '📷', title: 'Identify Your Plants', desc: 'Use AI identification and track your plants Identity' },
+    { icon: '🌿', title: 'Disease Detection', desc: 'With the help of AI Track your plants Health' },
+    { icon: '📊', title: 'Plantation Drives', desc: 'Join Various Plantation Drives from this sole platform' },
+    { icon: '🌱', title: 'Plantify Profile', desc: 'Create your plant collection with detailed profiles and care schedules' },
+    { icon: '🌳', title: 'Nursery Shop', desc: 'Get acces to buy all plants and stuff related to them Here' }
   ];
 
   return (
@@ -35,11 +37,9 @@ export default function PlantifyPlatform() {
             
             {/* Actions */}
             <div className="flex items-center space-x-4">
-              <button className="text-gray-600 hover:text-green-600 transition-all duration-300 font-medium hover:scale-105 hover:-translate-y-0.5">Support</button>
-              <button className="text-gray-600 hover:text-green-600 transition-all duration-300 font-medium hover:scale-105 hover:-translate-y-0.5">Sign In</button>
-              <button className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-2 rounded-full hover:from-green-600 hover:to-emerald-600 transition-all duration-300 font-medium shadow-lg hover:shadow-xl hover:-translate-y-0.5 transform">
-                Start Plant Journey
-              </button>
+              
+              
+              
             </div>
           </div>
         </div>
@@ -64,7 +64,7 @@ export default function PlantifyPlatform() {
                   Get <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-emerald-600 animate-pulse">PLANTIFY</span> to Nurture your plants like never before...
                 </h1>
                 <p className="text-xl text-gray-600 leading-relaxed hover:text-gray-700 transition-colors duration-300">
-                  Plant care and discovery that's easy for beginners, powerful and flexible for all gardening enthusiasts.
+                  “Plantify – Your smart green companion!  Identify plants, detect diseases instantly, and join plantation drives to grow a greener future.” 
                 </p>
               </div>
               
@@ -95,7 +95,7 @@ export default function PlantifyPlatform() {
                       <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3 hover:bg-green-100 hover:border-green-300 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                         <div className="text-sm text-gray-600">Indoor Plants</div>
                         <div className="flex items-center justify-between">
-                          <span className="text-gray-800 font-medium">Monstera Deliciosa</span>
+                          <span className="text-gray-800 font-medium">Lilly Plant</span>
                           <div className="flex items-center space-x-2">
                             <button className="w-8 h-8 border border-green-300 rounded flex items-center justify-center text-green-600 hover:bg-green-100 hover:scale-110 transition-all duration-200">💧</button>
                             <span className="font-bold text-green-600 animate-pulse">Today</span>
@@ -107,7 +107,7 @@ export default function PlantifyPlatform() {
                       
                       <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-3 hover:bg-yellow-100 hover:border-yellow-300 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-gray-800 font-medium">Snake Plant</span>
+                          <span className="text-gray-800 font-medium">Sunflower Plant</span>
                           <div className="flex items-center space-x-2">
                             <button className="w-8 h-8 border border-yellow-300 rounded flex items-center justify-center text-yellow-600 hover:bg-yellow-100 hover:scale-110 transition-all duration-200">💧</button>
                             <span className="font-bold text-yellow-600 animate-pulse">3 days</span>
@@ -165,16 +165,28 @@ export default function PlantifyPlatform() {
       </section>
 
       {/* Main Video Hero Section */}
-      <section className="relative h-[500px] mb-12 mx-6 rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500">
-        <div className="w-full h-full bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/50 flex items-center justify-center">
-            <div className="text-center text-white transform hover:scale-110 transition-all duration-500">
-              <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-white to-green-200 bg-clip-text text-transparent">Discover Plant Care</h2>
-              <p className="text-xl opacity-90">Learn how to nurture your green companions</p>
-            </div>
-          </div>
-        </div>
-      </section>
+<section className="relative h-[500px] mb-12 mx-6 rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500">
+  {/* Background Video */}
+  <video 
+    className="absolute inset-0 w-full h-full object-cover" 
+    src="\videos\video1.mp4"
+    autoPlay 
+    loop 
+    muted 
+    playsInline
+  />
+
+  {/* Gradient Overlay & Text */}
+  <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/50 flex items-center justify-center">
+    <div className="text-center text-white transform hover:scale-110 transition-all duration-500">
+      <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-white to-green-200 bg-clip-text text-transparent">
+        Discover Plantify
+      </h2>
+      <p className="text-xl opacity-90">Learn how to be a part of Green Enviorment</p>
+    </div>
+  </div>
+</section>
+
 
       {/* How it Works Section */}
       <section className="py-20 bg-gradient-to-br from-white via-green-50 to-emerald-50">
@@ -239,47 +251,51 @@ export default function PlantifyPlatform() {
         </div>
       </section>
 
-      {/* Dual Video Section */}
-      <section className="py-16 mx-6 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-2xl mb-16 shadow-2xl hover:shadow-3xl transition-all duration-500">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-gray-800 mb-4 hover:scale-105 transition-all duration-500">See It In Action</h3>
-            <p className="text-gray-600 hover:text-gray-700 transition-colors duration-300">Watch how our platform transforms plant care</p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-8">
-            
-            {/* Plant Identification Video */}
-            <div className="bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-500 hover:-translate-y-2">
-              <div className="h-72 bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl overflow-hidden flex items-center justify-center shadow-inner">
-                <div className="w-full h-full bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-6xl mb-4">📷</div>
-                    <p className="text-gray-700 font-semibold">Plant Identification Demo</p>
-                  </div>
-                </div>
-              </div>
-              <h4 className="text-lg font-bold mt-4 text-gray-800 hover:text-green-600 transition-colors duration-300">Plant Identification</h4>
-              <p className="text-gray-600 hover:text-gray-700 transition-colors duration-300">AI-powered plant recognition</p>
-            </div>
-            
-            {/* Care Tracking Video */}
-            <div className="bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-500 hover:-translate-y-2">
-              <div className="h-72 bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl overflow-hidden flex items-center justify-center shadow-inner">
-                <div className="w-full h-full bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-6xl mb-4">📊</div>
-                    <p className="text-gray-700 font-semibold">Care Tracking Demo</p>
-                  </div>
-                </div>
-              </div>
-              <h4 className="text-lg font-bold mt-4 text-gray-800 hover:text-green-600 transition-colors duration-300">Care Tracking</h4>
-              <p className="text-gray-600 hover:text-gray-700 transition-colors duration-300">Monitor growth and health</p>
-            </div>
-
-          </div>
+{/* Dual Video Section */}
+<section className="py-16 mx-6 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-2xl mb-16 shadow-2xl hover:shadow-3xl transition-all duration-500">
+  <div className="max-w-7xl mx-auto px-6">
+    <div className="text-center mb-12">
+      <h3 className="text-3xl font-bold text-gray-800 mb-4 hover:scale-105 transition-all duration-500">See It In Action</h3>
+      <p className="text-gray-600 hover:text-gray-700 transition-colors duration-300">Watch how our platform transforms plant care</p>
+    </div>
+    
+    <div className="grid md:grid-cols-2 gap-8">
+      
+      {/* Plant Identification Video */}
+      <div className="bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-500 hover:-translate-y-2">
+        <div className="h-72 rounded-xl overflow-hidden shadow-inner">
+          <video 
+            className="w-full h-full object-cover" 
+            src="\videos\video3.mp4" // 🔗 replace with your video link
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+          />
         </div>
-      </section>
+        <h4 className="text-lg font-bold mt-4 text-gray-800 hover:text-green-600 transition-colors duration-300">Plant Identification</h4>
+        <p className="text-gray-600 hover:text-gray-700 transition-colors duration-300">AI-powered plant recognition</p>
+      </div>
+      
+      {/* Care Tracking Video */}
+      <div className="bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-500 hover:-translate-y-2">
+        <div className="h-72 rounded-xl overflow-hidden shadow-inner">
+          <video 
+            className="w-full h-full object-cover" 
+            src="\videos\video2.mp4"     // 🔗 replace with your video link
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+          />
+        </div>
+        <h4 className="text-lg font-bold mt-4 text-gray-800 hover:text-green-600 transition-colors duration-300">Care Tracking</h4>
+        <p className="text-gray-600 hover:text-gray-700 transition-colors duration-300">Monitor growth and health</p>
+      </div>
+
+    </div>
+  </div>
+</section>
 
       {/* Pricing Section */}
       <section className="py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100">
@@ -373,80 +389,7 @@ export default function PlantifyPlatform() {
           </div>
         </div>
       </section>
+      </div>
 
-      {/* Footer */}
-      <footer className="bg-gradient-to-br from-gray-800 via-gray-900 to-black text-white pt-16 pb-0 mt-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-            {/* Company Info */}
-            <div className="hover:scale-105 transition-all duration-300">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300">
-                  <Leaf className="text-white w-6 h-6" />
-                </div>
-                <span className="text-white font-bold text-xl bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">PLANTIFY</span>
-              </div>
-              <p className="text-green-200 mb-6 hover:text-green-100 transition-colors duration-300">
-                Nurture, grow, and discover the joy of plant care like never before
-              </p>
-            </div>
-
-            {/* Quick Links 1 */}
-            <div className="hover:scale-105 transition-all duration-300">
-              <ul className="space-y-3">
-                <li><a href="#" className="text-green-200 hover:text-white transition-all duration-300 hover:translate-x-2 block">Plant Care Guide</a></li>
-                <li><a href="#" className="text-green-200 hover:text-white transition-all duration-300 hover:translate-x-2 block">Terms of Service</a></li>
-                <li><a href="#" className="text-green-200 hover:text-white transition-all duration-300 hover:translate-x-2 block">Privacy Policy</a></li>
-                <li><a href="#" className="text-green-200 hover:text-white transition-all duration-300 hover:translate-x-2 block">Cookie Policy</a></li>
-                <li><a href="#" className="text-green-200 hover:text-white transition-all duration-300 hover:translate-x-2 block">Contact Support</a></li>
-              </ul>
-            </div>
-
-            {/* Quick Links 2 */}
-            <div className="hover:scale-105 transition-all duration-300">
-              <ul className="space-y-3">
-                <li><a href="#" className="text-green-200 hover:text-white transition-all duration-300 hover:translate-x-2 block">Home</a></li>
-                <li><a href="#" className="text-green-200 hover:text-white transition-all duration-300 hover:translate-x-2 block">About Plantify</a></li>
-                <li><a href="#" className="text-green-200 hover:text-white transition-all duration-300 hover:translate-x-2 block">Plant Database</a></li>
-                <li><a href="#" className="text-green-200 hover:text-white transition-all duration-300 hover:translate-x-2 block">Community Garden</a></li>
-                <li><a href="#" className="text-green-200 hover:text-white transition-all duration-300 hover:translate-x-2 block">Growing Tips</a></li>
-              </ul>
-            </div>
-
-            {/* Contact */}
-            <div className="hover:scale-105 transition-all duration-300">
-              <h3 className="text-white font-bold text-lg mb-4">Contact Us</h3>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <Mail className="h-4 w-4 text-green-400" />
-                  <span className="text-green-200 hover:text-white transition-colors duration-300">support@plantify.com</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Phone className="h-4 w-4 text-green-400" />
-                  <span className="text-green-200 hover:text-white transition-colors duration-300">+92 300 1234567</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <MessageCircle className="h-4 w-4 text-green-400" />
-                  <span className="text-green-200 hover:text-white transition-colors duration-300">@plantify_official</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <MessageCircle className="h-4 w-4 text-green-400" />
-                  <span className="text-green-200 hover:text-white transition-colors duration-300">plantify.community</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Bar */}
-          <div className="pt-8 pb-0">
-            <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-center py-4 hover:from-green-700 hover:to-emerald-700 transition-all duration-300">
-              <p className="text-white font-medium">
-                © 2025 PLANTIFY - PLANT CARE & DISCOVERY PLATFORM
-              </p>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
   );
 }

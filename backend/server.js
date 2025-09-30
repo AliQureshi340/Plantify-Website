@@ -11,12 +11,19 @@ const crypto = require('crypto');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key';
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl) or any localhost
+    if (!origin || /localhost|127\.0\.0\.1/.test(origin)) {
+      return callback(null, true);
+    }
+    // In development, allow all origins to avoid CORS issues
+    return callback(null, true);
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -44,6 +51,143 @@ db.once('open', async () => {
     await mongoose.connection.db.collection('orders').dropIndex('orderNumber_1');
   } catch (error) {
     // Index doesn't exist, ignore
+  }
+
+  // Update existing drives to have approved status if they don't have status field
+  try {
+    await mongoose.connection.db.collection('drives').updateMany(
+      { status: { $exists: false } },
+      { $set: { status: 'approved' } }
+    );
+    console.log('✅ Updated existing drives with approved status');
+  } catch (error) {
+    console.error('Error updating existing drives:', error.message);
+  }
+
+  // Seed sample plantation drives if none exist
+  try {
+    const drivesCount = await mongoose.connection.db.collection('drives').countDocuments();
+    if (drivesCount === 0) {
+      const now = new Date();
+      const addDays = (d) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + d);
+      const sampleDrives = [
+        {
+          title: 'Capital Green Drive',
+          description: 'Join us to plant native trees across the capital city.',
+          date: addDays(7),
+          time: '09:00',
+          location: 'Islamabad',
+          capacity: 200,
+          maxParticipants: 200,
+          treesToPlant: 500,
+          requirements: 'Bring your own gloves and water bottle. We will provide tools and saplings.',
+          contactInfo: 'Call 0300-1234567 for more information',
+          isPublic: true,
+          status: 'approved',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          title: 'Lahore Canal Plantation',
+          description: 'Beautifying the canal bank with shade trees.',
+          date: addDays(10),
+          time: '08:30',
+          location: 'Lahore',
+          capacity: 150,
+          maxParticipants: 150,
+          treesToPlant: 300,
+          requirements: 'Comfortable clothes and closed shoes. Tools provided.',
+          contactInfo: 'Email: lahore@plantify.com',
+          isPublic: true,
+          status: 'approved',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          title: 'KPK Hills Reforestation',
+          description: 'Reforesting hills with resilient local species.',
+          date: addDays(14),
+          location: 'KPK',
+          capacity: 300,
+          isPublic: true,
+          status: 'approved',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        // Additional upcoming
+        {
+          title: 'Islamabad Parkside Trees',
+          description: 'Planting along park pathways and picnic spots.',
+          date: addDays(3),
+          location: 'Islamabad',
+          capacity: 120,
+          isPublic: true,
+          status: 'approved',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          title: 'Lahore University Green Day',
+          description: 'Student-led planting on campus grounds.',
+          date: addDays(5),
+          location: 'Lahore',
+          capacity: 180,
+          isPublic: true,
+          status: 'approved',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          title: 'KPK Riverbank Restoration',
+          description: 'Stabilizing riverbanks with native saplings.',
+          date: addDays(9),
+          location: 'KPK',
+          capacity: 220,
+          isPublic: true,
+          status: 'approved',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        // Past drives
+        {
+          title: 'Islamabad Spring Drive',
+          description: 'Community spring planting event completed.',
+          date: addDays(-20),
+          location: 'Islamabad',
+          capacity: 200,
+          isPublic: true,
+          status: 'approved',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          title: 'Lahore Mall Road Shade',
+          description: 'Added shade trees along main boulevard.',
+          date: addDays(-12),
+          location: 'Lahore',
+          capacity: 160,
+          isPublic: true,
+          status: 'approved',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          title: 'KPK Community Orchard',
+          description: 'Fruit-bearing trees planted with volunteers.',
+          date: addDays(-8),
+          location: 'KPK',
+          capacity: 140,
+          isPublic: true,
+          status: 'approved',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ];
+      await mongoose.connection.db.collection('drives').insertMany(sampleDrives);
+      console.log('🌳 Seeded sample plantation drives');
+    }
+  } catch (error) {
+    console.error('Error seeding drives:', error.message);
   }
 });
 
@@ -158,7 +302,12 @@ otpSchema.index({ email: 1, role: 1, otp: 1 });
 // Plant Schema
 const plantSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
-  category: { type: String, required: true, trim: true },
+category: { 
+  type: String, 
+  enum: ["outdoor", "indoor", "seeds", "fertilizers", "equipment", "artificial"], 
+  required: true 
+},
+
   price: { type: Number, required: true, min: 0 },
   stock: { type: Number, required: true, min: 0 },
   discount: { type: Number, default: 0, min: 0, max: 100 },
@@ -217,6 +366,56 @@ const User = mongoose.model('User', userSchema);
 const OTP = mongoose.model('OTP', otpSchema);
 const Plant = mongoose.model('Plant', plantSchema);
 const Order = mongoose.model('Order', orderSchema);
+// Notification Schema
+const notificationSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
+  title: { type: String, required: true },
+  message: { type: String, required: true },
+  type: { type: String, enum: ['drive','order','system'], default: 'drive' },
+  link: { type: String },
+  read: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now }
+});
+const Notification = mongoose.model('Notification', notificationSchema);
+// Drive Participant Schema
+const participantSchema = new mongoose.Schema({
+  driveId: { type: mongoose.Schema.Types.ObjectId, ref: 'Drive', index: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  firstName: String,
+  lastName: String,
+  phone: String,
+  email: String,
+  createdAt: { type: Date, default: Date.now }
+});
+const DriveParticipant = mongoose.model('DriveParticipant', participantSchema);
+// Drive Schema
+const driveSchema = new mongoose.Schema({
+  title: { type: String, required: true, trim: true },
+  description: { type: String, trim: true },
+  date: { type: Date, required: true },
+  time: { type: String, trim: true },
+  location: { type: String, required: true, trim: true },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  capacity: { type: Number, default: 100, min: 1 },
+  maxParticipants: { type: Number, default: 100, min: 1 },
+  treesToPlant: { type: Number, default: 0, min: 0 },
+  requirements: { type: String, trim: true },
+  contactInfo: { type: String, trim: true },
+  participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  isPublic: { type: Boolean, default: true },
+  status: { 
+    type: String, 
+    enum: ['pending', 'approved', 'rejected'], 
+    default: 'approved' 
+  },
+  rejectionReason: { type: String, trim: true },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+driveSchema.virtual('spotsLeft').get(function() {
+  return Math.max(0, this.capacity - (this.participants?.length || 0));
+});
+const Drive = mongoose.model('Drive', driveSchema);
 
 // ==================== AUTHENTICATION MIDDLEWARE ====================
 
@@ -632,15 +831,12 @@ app.get('/api/store/plants', async (req, res) => {
 });
 
 // Get categories
-app.get('/api/store/categories', async (req, res) => {
-  try {
-    const categories = await Plant.distinct('category', { isActive: true });
-    res.json(categories);
-  } catch (error) {
-    console.error('Error fetching categories:', error);
-    res.status(500).json({ error: 'Failed to fetch categories' });
-  }
+app.get('/api/store/categories', (req, res) => {
+  // Always return all defined categories
+  const allCategories = ["outdoor", "indoor", "seeds", "fertilizers", "equipment", "artificial"];
+  res.json(allCategories);
 });
+
 
 // Get plants by nursery owner or all plants for admin
 app.get('/api/plants/my', authenticateToken, requireRole(['admin', 'nursery']), async (req, res) => {
@@ -731,8 +927,8 @@ app.put('/api/plants/:id', authenticateToken, requireRole(['admin', 'nursery']),
   }
 });
 
-// Delete/Deactivate plant (admin/nursery only - only their own plants)
-app.delete('/api/plants/:id', authenticateToken, requireRole(['admin', 'nursery']), async (req, res) => {
+// Permanent delete plant (admin/nursery only - only their own plants)
+app.delete('/api/plants/:id/permanent-delete', authenticateToken, requireRole(['admin', 'nursery']), async (req, res) => {
   try {
     const plantId = req.params.id;
     
@@ -747,19 +943,18 @@ app.delete('/api/plants/:id', authenticateToken, requireRole(['admin', 'nursery'
       return res.status(404).json({ error: 'Plant not found or unauthorized' });
     }
     
-    // Soft delete - just deactivate the plant
-    await Plant.findByIdAndUpdate(plantId, { 
-      isActive: false,
-      updatedAt: new Date()
-    });
+    // Actually delete the plant from database (not just deactivate)
+    await Plant.findByIdAndDelete(plantId);
+    
+    console.log(`✅ Plant permanently deleted: ${plant.name} by ${req.user.role}: ${req.user.email}`);
     
     res.json({
       success: true,
-      message: 'Plant deactivated successfully'
+      message: 'Plant permanently deleted'
     });
   } catch (error) {
-    console.error('Error deactivating plant:', error);
-    res.status(500).json({ error: 'Failed to deactivate plant' });
+    console.error('Error permanently deleting plant:', error);
+    res.status(500).json({ error: 'Failed to permanently delete plant' });
   }
 });
 
@@ -1499,6 +1694,505 @@ app.get('/api/server-info', (req, res) => {
   });
 });
 
+// ==================== NOTIFICATIONS ROUTES ====================
+// Get my notifications (user)
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+  try {
+    const items = await Notification.find({ userId: req.user.userId }).sort({ createdAt: -1 }).limit(50);
+    res.json(items);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+// Mark notification as read
+app.patch('/api/notifications/:id/read', authenticateToken, async (req, res) => {
+  try {
+    const notif = await Notification.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.userId },
+      { read: true },
+      { new: true }
+    );
+    if (!notif) return res.status(404).json({ error: 'Notification not found' });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update notification' });
+  }
+});
+
+// ==================== PLANTATION DRIVES ROUTES ====================
+
+// Public: list drives (upcoming first) - only approved drives
+app.get('/api/drives', async (req, res) => {
+  try {
+    const { q, from, to } = req.query;
+    const query = { isPublic: true, status: 'approved' };
+    if (q) {
+      query.$or = [
+        { title: { $regex: q, $options: 'i' } },
+        { location: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } }
+      ];
+    }
+    if (from || to) {
+      query.date = {};
+      if (from) query.date.$gte = new Date(from);
+      if (to) query.date.$lte = new Date(to);
+    }
+    const drives = await Drive.find(query).sort({ date: 1 });
+    res.json(drives);
+  } catch (error) {
+    console.error('Error fetching drives:', error);
+    res.status(500).json({ error: 'Failed to fetch drives' });
+  }
+});
+
+// Public: get drive by id
+app.get('/api/drives/:id', async (req, res) => {
+  try {
+    const drive = await Drive.findById(req.params.id)
+      .populate('createdBy', 'name email')
+      .populate('participants', 'name email');
+    if (!drive || !drive.isPublic) {
+      return res.status(404).json({ error: 'Drive not found' });
+    }
+    res.json(drive);
+  } catch (error) {
+    console.error('Error fetching drive:', error);
+    res.status(500).json({ error: 'Failed to fetch drive' });
+  }
+});
+
+// Authenticated: create drive (users or nursery/admin)
+app.post('/api/drives', authenticateToken, async (req, res) => {
+  try {
+    const { title, description, date, location, capacity, isPublic } = req.body;
+    if (!title || !date || !location) {
+      return res.status(400).json({ error: 'Title, date, and location are required' });
+    }
+    const drive = new Drive({
+      title: title.trim(),
+      description: description?.trim(),
+      date: new Date(date),
+      location: location.trim(),
+      capacity: capacity ? Number(capacity) : 100,
+      isPublic: isPublic !== false,
+      createdBy: req.user.userId,
+      participants: []
+    });
+    await drive.save();
+    res.status(201).json({ success: true, message: 'Drive created', drive });
+  } catch (error) {
+    console.error('Error creating drive:', error);
+    res.status(500).json({ error: 'Failed to create drive' });
+  }
+});
+
+// Authenticated: join drive
+app.post('/api/drives/:id/join', authenticateToken, async (req, res) => {
+  try {
+    const drive = await Drive.findById(req.params.id);
+    if (!drive || !drive.isPublic) {
+      return res.status(404).json({ error: 'Drive not found' });
+    }
+    const alreadyJoined = drive.participants.some(p => p.toString() === req.user.userId.toString());
+    if (alreadyJoined) {
+      return res.status(400).json({ error: 'Already joined' });
+    }
+    if ((drive.participants?.length || 0) >= drive.capacity) {
+      return res.status(400).json({ error: 'Drive is full' });
+    }
+    drive.participants.push(req.user.userId);
+    drive.updatedAt = new Date();
+    await drive.save();
+    // Save participant details
+    try {
+      const { firstName, lastName, phone, email } = req.body || {};
+      await DriveParticipant.create({
+        driveId: drive._id,
+        userId: req.user.userId,
+        firstName,
+        lastName,
+        phone,
+        email
+      });
+      // Notify admins
+      const admins = await User.find({ role: 'admin', isActive: true }).select('_id');
+      if (admins.length > 0) {
+        const notifs = admins.map(a => ({
+          userId: a._id,
+          title: 'New Drive Participant',
+          message: `${firstName || ''} ${lastName || ''} joined ${drive.title}.`,
+          type: 'drive',
+          link: `/admin/drives`
+        }));
+        await Notification.insertMany(notifs);
+      }
+    } catch (e) {
+      console.error('Participant save/notify error:', e.message);
+    }
+    res.json({ success: true, message: 'Joined drive', drive });
+  } catch (error) {
+    console.error('Error joining drive:', error);
+    res.status(500).json({ error: 'Failed to join drive' });
+  }
+});
+
+// ==================== ADMIN DRIVES ROUTES ====================
+// Admin: list all drives
+app.get('/api/admin/drives', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const drives = await Drive.find({}).sort({ createdAt: -1 });
+    res.json(drives);
+  } catch (error) {
+    console.error('Admin list drives error:', error);
+    res.status(500).json({ error: 'Failed to list drives' });
+  }
+});
+
+// Admin: create drive
+app.post('/api/admin/drives', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { title, description, date, location, capacity, isPublic } = req.body;
+    if (!title || !date || !location) {
+      return res.status(400).json({ error: 'Title, date, and location are required' });
+    }
+    const drive = new Drive({
+      title: title.trim(),
+      description: description?.trim(),
+      date: new Date(date),
+      location: location.trim(),
+      capacity: capacity ? Number(capacity) : 100,
+      isPublic: isPublic !== false,
+      createdBy: req.user.userId
+    });
+    await drive.save();
+    // Create notifications for all users when a public drive is created
+    try {
+      if (drive.isPublic) {
+        const users = await User.find({ role: 'user', isActive: true }).select('_id');
+        if (users.length > 0) {
+          const notifs = users.map(u => ({
+            userId: u._id,
+            title: 'New Plantation Drive',
+            message: `${drive.title} in ${drive.location} on ${drive.date.toLocaleDateString()}. Join now!`,
+            type: 'drive',
+            link: '/drives'
+          }));
+          await Notification.insertMany(notifs);
+        }
+      }
+    } catch (e) {
+      console.error('Notification creation error:', e.message);
+    }
+    res.status(201).json({ success: true, drive });
+  } catch (error) {
+    console.error('Admin create drive error:', error);
+    res.status(500).json({ error: 'Failed to create drive' });
+  }
+});
+
+// Admin: update drive
+app.put('/api/admin/drives/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const update = { ...req.body, updatedAt: new Date() };
+    const drive = await Drive.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
+    if (!drive) return res.status(404).json({ error: 'Drive not found' });
+    res.json({ success: true, drive });
+  } catch (error) {
+    console.error('Admin update drive error:', error);
+    res.status(500).json({ error: 'Failed to update drive' });
+  }
+});
+
+// Admin: delete drive
+app.delete('/api/admin/drives/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const drive = await Drive.findByIdAndDelete(req.params.id);
+    if (!drive) return res.status(404).json({ error: 'Drive not found' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Admin delete drive error:', error);
+    res.status(500).json({ error: 'Failed to delete drive' });
+  }
+});
+
+// Admin: toggle public
+app.patch('/api/admin/drives/:id/toggle-public', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const drive = await Drive.findById(req.params.id);
+    if (!drive) return res.status(404).json({ error: 'Drive not found' });
+    drive.isPublic = !drive.isPublic;
+    drive.updatedAt = new Date();
+    await drive.save();
+    res.json({ success: true, drive });
+  } catch (error) {
+    console.error('Admin toggle drive public error:', error);
+    res.status(500).json({ error: 'Failed to toggle status' });
+  }
+});
+
+// Admin: analytics for drives
+app.get('/api/admin/drives/analytics', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const drives = await Drive.find({});
+    const totalDrives = drives.length;
+    const now = Date.now();
+    const upcoming = drives.filter(d => new Date(d.date).getTime() >= now);
+    const past = drives.filter(d => new Date(d.date).getTime() < now);
+    const totalCapacity = drives.reduce((s,d)=> s + (d.capacity || 0), 0);
+    const totalParticipants = drives.reduce((s,d)=> s + ((d.participants || []).length), 0);
+    const avgFill = totalDrives > 0 ? Math.round((totalParticipants / Math.max(1,totalCapacity)) * 100) : 0;
+    const byCity = drives.reduce((acc, d) => {
+      const city = d.location || 'Unknown';
+      if (!acc[city]) acc[city] = { drives: 0, capacity: 0, participants: 0 };
+      acc[city].drives += 1;
+      acc[city].capacity += d.capacity || 0;
+      acc[city].participants += (d.participants || []).length;
+      return acc;
+    }, {});
+
+    res.json({
+      totals: {
+        totalDrives,
+        upcoming: upcoming.length,
+        past: past.length,
+        totalCapacity,
+        totalParticipants,
+        averageFillPercent: avgFill
+      },
+      byCity
+    });
+  } catch (error) {
+    console.error('Admin drives analytics error:', error);
+    res.status(500).json({ error: 'Failed to load analytics' });
+  }
+});
+
+// Admin: list participants of a drive
+app.get('/api/admin/drives/:id/participants', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const list = await DriveParticipant.find({ driveId: req.params.id })
+      .populate('userId', 'name email')
+      .sort({ createdAt: -1 });
+    res.json(list);
+  } catch (error) {
+    console.error('Admin drive participants error:', error);
+    res.status(500).json({ error: 'Failed to fetch participants' });
+  }
+});
+
+// ==================== USER DRIVE CREATION ROUTES ====================
+
+// User: create drive (starts as pending)
+app.post('/api/drives/create', authenticateToken, async (req, res) => {
+  try {
+    const { 
+      title, 
+      description, 
+      location, 
+      date, 
+      time, 
+      maxParticipants, 
+      treesToPlant, 
+      requirements, 
+      contactInfo,
+      status = 'pending' 
+    } = req.body;
+
+    if (!title || !date || !location) {
+      return res.status(400).json({ error: 'Title, date, and location are required' });
+    }
+
+    const drive = new Drive({
+      title: title.trim(),
+      description: description?.trim(),
+      location: location.trim(),
+      date: new Date(date),
+      time: time?.trim(),
+      maxParticipants: maxParticipants ? Number(maxParticipants) : 100,
+      treesToPlant: treesToPlant ? Number(treesToPlant) : 0,
+      requirements: requirements?.trim(),
+      contactInfo: contactInfo?.trim(),
+      createdBy: req.user.userId,
+      capacity: maxParticipants ? Number(maxParticipants) : 100,
+      isPublic: false, // User-created drives are not public until approved
+      status: status,
+      participants: []
+    });
+
+    await drive.save();
+
+    // Notify admins about new drive submission
+    try {
+      const admins = await User.find({ role: 'admin', isActive: true }).select('_id');
+      if (admins.length > 0) {
+        const notifs = admins.map(a => ({
+          userId: a._id,
+          title: 'New Drive Submission',
+          message: `${req.user.name} submitted a new drive: "${drive.title}"`,
+          type: 'drive',
+          link: '/admin/drives/verification'
+        }));
+        await Notification.insertMany(notifs);
+      }
+    } catch (e) {
+      console.error('Notification creation error:', e.message);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Drive submitted for admin approval',
+      drive
+    });
+  } catch (error) {
+    console.error('Error creating user drive:', error);
+    res.status(500).json({ error: 'Failed to create drive' });
+  }
+});
+
+// User: get my drives
+app.get('/api/drives/my-drives', authenticateToken, async (req, res) => {
+  try {
+    const drives = await Drive.find({ createdBy: req.user.userId })
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 });
+    
+    res.json(drives);
+  } catch (error) {
+    console.error('Error fetching user drives:', error);
+    res.status(500).json({ error: 'Failed to fetch drives' });
+  }
+});
+
+// ==================== ADMIN DRIVE VERIFICATION ROUTES ====================
+
+// Admin: get pending drives for verification
+app.get('/api/admin/drives/pending', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const drives = await Drive.find({ status: 'pending' })
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 });
+    
+    res.json(drives);
+  } catch (error) {
+    console.error('Error fetching pending drives:', error);
+    res.status(500).json({ error: 'Failed to fetch pending drives' });
+  }
+});
+
+// Admin: approve drive
+app.patch('/api/admin/drives/:id/approve', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const drive = await Drive.findByIdAndUpdate(
+      req.params.id,
+      { 
+        status: 'approved',
+        isPublic: true,
+        updatedAt: new Date()
+      },
+      { new: true }
+    ).populate('createdBy', 'name email');
+
+    if (!drive) {
+      return res.status(404).json({ error: 'Drive not found' });
+    }
+
+    // Notify the user about approval
+    try {
+      const notification = new Notification({
+        userId: drive.createdBy._id,
+        title: 'Drive Approved',
+        message: `Your drive "${drive.title}" has been approved and is now public!`,
+        type: 'drive',
+        link: '/user/my-drives'
+      });
+      await notification.save();
+    } catch (e) {
+      console.error('Notification creation error:', e.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Drive approved successfully',
+      drive
+    });
+  } catch (error) {
+    console.error('Error approving drive:', error);
+    res.status(500).json({ error: 'Failed to approve drive' });
+  }
+});
+
+// Admin: reject drive
+app.patch('/api/admin/drives/:id/reject', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { reason } = req.body;
+    
+    if (!reason) {
+      return res.status(400).json({ error: 'Rejection reason is required' });
+    }
+
+    const drive = await Drive.findByIdAndUpdate(
+      req.params.id,
+      { 
+        status: 'rejected',
+        rejectionReason: reason,
+        isPublic: false,
+        updatedAt: new Date()
+      },
+      { new: true }
+    ).populate('createdBy', 'name email');
+
+    if (!drive) {
+      return res.status(404).json({ error: 'Drive not found' });
+    }
+
+    // Notify the user about rejection
+    try {
+      const notification = new Notification({
+        userId: drive.createdBy._id,
+        title: 'Drive Rejected',
+        message: `Your drive "${drive.title}" was rejected. Reason: ${reason}`,
+        type: 'drive',
+        link: '/user/my-drives'
+      });
+      await notification.save();
+    } catch (e) {
+      console.error('Notification creation error:', e.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Drive rejected successfully',
+      drive
+    });
+  } catch (error) {
+    console.error('Error rejecting drive:', error);
+    res.status(500).json({ error: 'Failed to reject drive' });
+  }
+});
+
+// Admin: get all drives for verification (with filters)
+app.get('/api/admin/drives/verification', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { status = 'all' } = req.query;
+    
+    let query = {};
+    if (status !== 'all') {
+      query.status = status;
+    }
+
+    const drives = await Drive.find(query)
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 });
+    
+    res.json(drives);
+  } catch (error) {
+    console.error('Error fetching drives for verification:', error);
+    res.status(500).json({ error: 'Failed to fetch drives' });
+  }
+});
+
 // Test email endpoint (for debugging)
 app.post('/api/test-email', async (req, res) => {
   try {
@@ -1658,6 +2352,22 @@ app.listen(PORT, () => {
   console.log('      GET  /api/admin/customer/:id/orders');
   console.log('      GET  /api/admin/customer-activity-report');
   console.log('      PATCH /api/admin/users/:id/toggle-status');
+  console.log('   🔔 Notifications:');
+  console.log('      GET  /api/notifications');
+  console.log('      PATCH /api/notifications/:id/read');
+
+  console.log('   🌳 Plantation Drives:');
+  console.log('      GET  /api/drives');
+  console.log('      GET  /api/drives/:id');
+  console.log('      POST /api/drives');
+  console.log('      POST /api/drives/:id/join');
+  console.log('      (admin) GET    /api/admin/drives');
+  console.log('      (admin) POST   /api/admin/drives');
+  console.log('      (admin) PUT    /api/admin/drives/:id');
+  console.log('      (admin) DELETE /api/admin/drives/:id');
+  console.log('      (admin) PATCH  /api/admin/drives/:id/toggle-public');
+  console.log('      (admin) GET    /api/admin/drives/analytics');
+  console.log('      (admin) GET    /api/admin/drives/:id/participants');
   
   console.log('\n✨ Ready to serve requests!');
 });

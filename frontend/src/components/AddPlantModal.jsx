@@ -2,19 +2,20 @@ import React, { useState } from 'react';
 import { X, Upload, Plus } from 'lucide-react';
 
 const AddPlantModal = ({ showAddPlant, setShowAddPlant, onPlantAdded }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    category: 'Indoor',
-    price: '',
-    stock: '',
-    discount: 0,
-    description: ''
-  });
+ const [formData, setFormData] = useState({
+  name: '',
+  category: 'indoor',
+  price: '',
+  stock: '',
+  discount: 0,
+  description: ''
+});
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const categories = ['Indoor', 'Outdoor', 'Herbs', 'Succulents', 'Flowering'];
+const categories = ['outdoor', 'indoor', 'seeds', 'fertilizers', 'equipment', 'artificial'];
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -53,14 +54,14 @@ const AddPlantModal = ({ showAddPlant, setShowAddPlant, onPlantAdded }) => {
   };
 
   const resetForm = () => {
-    setFormData({
-      name: '',
-      category: 'Indoor',
-      price: '',
-      stock: '',
-      discount: 0,
-      description: ''
-    });
+   setFormData({
+  name: '',
+  category: 'outdoor',
+  price: '',
+  stock: '',
+  discount: 0,
+  description: ''
+});
     setImageFile(null);
     setImagePreview(null);
   };
@@ -98,7 +99,7 @@ const AddPlantModal = ({ showAddPlant, setShowAddPlant, onPlantAdded }) => {
       // Get token from localStorage
       const token = localStorage.getItem('token');
       
-      const response = await fetch('http://localhost:5000/api/plants', {
+      const response = await fetch('http://localhost:5002/api/plants', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

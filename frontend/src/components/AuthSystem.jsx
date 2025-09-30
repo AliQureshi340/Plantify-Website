@@ -4,6 +4,7 @@ import { User, Mail, Lock, Phone, MapPin, Upload, Eye, EyeOff, X, Send, Shield, 
 // ==================== AUTH CONTEXT ====================
 
 const AuthContext = createContext();
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5002';
 
 const authReducer = (state, action) => {
   switch (action.type) {
@@ -103,7 +104,7 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    const response = await fetch(`http://localhost:5000${url}`, config);
+    const response = await fetch(`${API_BASE}${url}`, config);
     
     if (response.status === 401) {
       dispatch({ type: 'LOGOUT' });
@@ -116,7 +117,7 @@ export const AuthProvider = ({ children }) => {
   // Send OTP function
   const sendOTP = async (email, userType) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/send-otp', {
+      const response = await fetch(`${API_BASE}/api/auth/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, role: userType })
@@ -139,7 +140,7 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, expectedRole: userType, otp })
@@ -174,7 +175,7 @@ export const AuthProvider = ({ children }) => {
         }
       });
 
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         body: formData
       });
@@ -383,7 +384,9 @@ export const AuthModal = ({ isOpen, onClose, initialMode = 'login', userType = '
           if (result.success) {
             onClose();
             // Redirect based on role
-            if (result.user.role === 'nursery') {
+            if (result.user.role === 'admin') {
+              window.location.href = '/admin/drives';
+            } else if (result.user.role === 'nursery') {
               window.location.href = '/nursery';
             } else {
               window.location.href = '/user';
@@ -410,7 +413,9 @@ export const AuthModal = ({ isOpen, onClose, initialMode = 'login', userType = '
         if (result.success) {
           onClose();
           // Redirect based on role
-          if (result.user.role === 'nursery') {
+          if (result.user.role === 'admin') {
+            window.location.href = '/admin/drives';
+          } else if (result.user.role === 'nursery') {
             window.location.href = '/nursery';
           } else {
             window.location.href = '/user';

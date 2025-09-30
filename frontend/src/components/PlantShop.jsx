@@ -10,7 +10,7 @@ const PlantDetailsModal = ({ plant, show, onClose, onAddToCart }) => {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col lg:flex-row transform transition-all duration-300 scale-100 hover:scale-[1.02]">
         <div className="flex-1 relative">
           <img 
-            src={plant.image?.startsWith('http') ? plant.image : `http://localhost:5000${plant.image}` || '/images/placeholder.jpg'}
+            src={plant.image?.startsWith('http') ? plant.image : `http://localhost:5002${plant.image}` || '/images/placeholder.jpg'}
             alt={plant.name}
             className="w-full h-64 lg:h-96 object-cover rounded-t-2xl lg:rounded-l-2xl lg:rounded-tr-none transition-transform duration-500 hover:scale-105"
           />
@@ -250,7 +250,7 @@ const PlantInventory = ({ onClose, onPlantAdded }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/plants/my', {
+      const response = await fetch('http://localhost:5002/api/plants/my', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -333,7 +333,7 @@ const PlantInventory = ({ onClose, onPlantAdded }) => {
                 <div key={plant._id} className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
                   <div className="relative mb-4">
                     <img
-                      src={plant.image?.startsWith('http') ? plant.image : `http://localhost:5000${plant.image}` || '/images/placeholder.jpg'}
+                      src={plant.image?.startsWith('http') ? plant.image : `http://localhost:5002${plant.image}` || '/images/placeholder.jpg'}
                       alt={plant.name}
                       className="w-full h-40 object-cover rounded-xl"
                     />
@@ -366,92 +366,146 @@ const PlantInventory = ({ onClose, onPlantAdded }) => {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <button className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-bold rounded-lg hover:from-blue-600 hover:to-indigo-600 transform hover:scale-105 transition-all duration-200">
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        const currentStock = plant.stock;
-                        const newStock = prompt(
-                          `Current stock: ${currentStock}\n\nOptions:\n` +
-                          `• Enter a number to set new stock (e.g., "5" sets stock to 5)\n` +
-                          `• Enter "-1" to decrease by 1\n` +
-                          `• Enter "0" to delete all stock\n` +
-                          `• Enter "delete" to remove plant completely\n\n` +
-                          `What would you like to do?`
-                        );
-                        
-                        if (newStock === null) return;
-                        
-                        const handleStockUpdate = async (updateData) => {
-                          try {
-                            const token = localStorage.getItem('token');
-                            const response = await fetch(`http://localhost:5000/api/plants/${plant._id}`, {
-                              method: 'PUT',
-                              headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': 'application/json'
-                              },
-                              body: JSON.stringify(updateData)
-                            });
-                            
-                            if (response.ok) {
-                              fetchMyPlants();
-                              alert('Stock updated successfully!');
-                            } else {
-                              alert('Failed to update stock');
-                            }
-                          } catch (error) {
-                            console.error('Error updating stock:', error);
-                            alert('Failed to update stock');
-                          }
-                        };
-                        
-                        const handleDelete = async () => {
-                          if (!window.confirm('Are you sure you want to permanently delete this plant?')) return;
-                          
-                          try {
-                            const token = localStorage.getItem('token');
-                            const response = await fetch(`http://localhost:5000/api/plants/${plant._id}`, {
-                              method: 'DELETE',
-                              headers: {
-                                'Authorization': `Bearer ${token}`
-                              }
-                            });
-                            
-                            if (response.ok) {
-                              fetchMyPlants();
-                              alert('Plant deleted successfully!');
-                            } else {
-                              alert('Failed to delete plant');
-                            }
-                          } catch (error) {
-                            console.error('Error deleting plant:', error);
-                            alert('Failed to delete plant');
-                          }
-                        };
-                        
-                        if (newStock.toLowerCase() === 'delete') {
-                          handleDelete();
-                        } else if (newStock === '-1') {
-                          const updatedStock = Math.max(0, currentStock - 1);
-                          handleStockUpdate({ stock: updatedStock });
-                        } else {
-                          const stockValue = parseInt(newStock);
-                          if (!isNaN(stockValue) && stockValue >= 0) {
-                            handleStockUpdate({ stock: stockValue });
-                          } else {
-                            alert('Invalid input. Please enter a valid number or "delete"');
-                          }
-                        }
-                      }}
-                      className="flex-1 px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-sm font-bold rounded-lg hover:from-yellow-600 hover:to-orange-600 transform hover:scale-105 transition-all duration-200"
-                    >
-                      Manage Stock
-                    </button>
+               <div className="grid grid-cols-2 gap-2">
+  <button className="w-full h-10 px-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-bold rounded-lg hover:from-blue-600 hover:to-indigo-600 transform hover:scale-105 transition-all duration-200">
+    Edit
+  </button>
+
+  <button
+    onClick={() => {
+      const currentStock = plant.stock;
+      const newStock = prompt(
+        `Current stock: ${currentStock}\n\nOptions:\n` +
+        `• Enter a number to set new stock (e.g., "5" sets stock to 5)\n` +
+        `• Enter "-1" to decrease by 1\n` +
+        `• Enter "0" to set stock to zero\n\n` +
+        `What would you like to do?`
+      );
+
+      if (newStock === null) return;
+
+      const handleStockUpdate = async (updateData) => {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(`http://localhost:5002/api/plants/${plant._id}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updateData)
+          });
+
+          if (response.ok) {
+            fetchMyPlants();
+            alert('Stock updated successfully!');
+          } else {
+            alert('Failed to update stock');
+          }
+        } catch (error) {
+          console.error('Error updating stock:', error);
+          alert('Failed to update stock');
+        }
+      };
+
+      if (newStock === '-1') {
+        const updatedStock = Math.max(0, currentStock - 1);
+        handleStockUpdate({ stock: updatedStock });
+      } else {
+        const stockValue = parseInt(newStock);
+        if (!isNaN(stockValue) && stockValue >= 0) {
+          handleStockUpdate({ stock: stockValue });
+        } else {
+          alert('Invalid input. Please enter a valid number');
+        }
+      }
+    }}
+    className="w-full h-10 px-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-bold rounded-lg hover:from-blue-600 hover:to-indigo-600 transform hover:scale-105 transition-all duration-200"
+  >
+    Manage Stock
+  </button>
+
+  <button
+    onClick={async () => {
+      const action = plant.isActive ? 'hide from shop' : 'show in shop';
+      const confirmMessage = plant.isActive 
+        ? `Hide "${plant.name}" from shop?\n\nCustomers won't be able to see or buy this plant, but it will remain in your inventory.`
+        : `Show "${plant.name}" in shop?\n\nCustomers will be able to see and buy this plant again.`;
+
+      if (!window.confirm(confirmMessage)) return;
+
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:5002/api/plants/${plant._id}/toggle-status`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          await fetchMyPlants();
+          alert(`Plant ${plant.isActive ? 'hidden from' : 'shown in'} shop successfully!`);
+        } else {
+          alert(`Failed to ${action}`);
+        }
+      } catch (error) {
+        console.error('Error toggling plant status:', error);
+        alert(`Failed to ${action}`);
+      }
+    }}
+    className="w-full h-10 px-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-bold rounded-lg hover:from-blue-600 hover:to-indigo-600 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-1"
+  >
+    {plant.isActive ? (
+      <>
+        <X size={14} />
+        Hide from Shop
+      </>
+    ) : (
+      <>
+        <Check size={14} />
+        Show in Shop
+      </>
+    )}
+  </button>
+
+  <button
+    onClick={async () => {
+      if (!window.confirm(`⚠️ PERMANENT DELETE ⚠️\n\nDelete "${plant.name}" permanently?\n\nThis will:\n• Remove it from your inventory completely\n• Remove it from the shop\n• Cannot be undone\n\nAre you absolutely sure?`)) return;
+
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:5002/api/plants/${plant._id}/permanent-delete`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          await fetchMyPlants();
+          if (onPlantAdded) onPlantAdded();
+          alert('Plant permanently deleted!');
+        } else {
+          const errorData = await response.text();
+          console.error('Permanent delete failed:', errorData);
+          alert('Failed to delete plant permanently');
+        }
+      } catch (error) {
+        console.error('Error permanently deleting plant:', error);
+        alert('Failed to delete plant permanently');
+      }
+    }}
+    className="w-full h-10 px-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-bold rounded-lg hover:from-blue-600 hover:to-indigo-600 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-1"
+  >
+    <X size={14} />
+    Delete
+  </button>
+</div>
+
                   </div>
-                </div>
               ))}
             </div>
           )}
@@ -537,7 +591,7 @@ const PlantShop = () => {
       if (searchQuery) queryParams.append('search', searchQuery);
       if (sortBy) queryParams.append('sortBy', sortBy);
 
-      const response = await fetch(`http://localhost:5000/api/store/plants?${queryParams}`);
+      const response = await fetch(`http://localhost:5002/api/store/plants?${queryParams}`);
       if (response.ok) {
         const data = await response.json();
         setPlants(data);
@@ -551,7 +605,7 @@ const PlantShop = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/store/categories');
+      const response = await fetch('http://localhost:5002/api/store/categories');
       if (response.ok) {
         const data = await response.json();
         setCategories(data);
@@ -571,18 +625,19 @@ const PlantShop = () => {
     fetchCategories();
   }, []);
 
-  const addToCart = (plant) => {
-    const existingItem = cart.find(item => item._id === plant._id);
+  const addToCart = useCallback((plant) => {
+  setCart(prevCart => {
+    const existingItem = prevCart.find(item => item._id === plant._id);
     if (existingItem) {
-      setCart(cart.map(item => 
+      return prevCart.map(item => 
         item._id === plant._id 
           ? { ...item, quantity: Math.min(item.quantity + 1, plant.stock) }
           : item
-      ));
-    } else {
-      setCart([...cart, { ...plant, quantity: 1 }]);
+      );
     }
-  };
+    return [...prevCart, { ...plant, quantity: 1 }];
+  });
+}, []);
 
   const removeFromCart = (plantId) => {
     setCart(cart.filter(item => item._id !== plantId));
@@ -600,6 +655,13 @@ const PlantShop = () => {
         : item
     ));
   };
+
+
+const filteredPlants = plants.filter(plant => {
+  return selectedCategory === "all" || plant.category.toLowerCase() === selectedCategory.toLowerCase();
+});
+
+
 
   const placeOrder = async () => {
     try {
@@ -619,7 +681,7 @@ const PlantShop = () => {
         userId: user?.id || null
       };
 
-      const response = await fetch('http://localhost:5000/api/orders', {
+      const response = await fetch('http://localhost:5002/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -659,11 +721,11 @@ const PlantShop = () => {
   };
 
   const PlantCard = ({ plant }) => {
+    const [isAdding, setIsAdding] = useState(false);
     const discountedPrice = plant.price - calculateDiscountAmount(plant);
     
     return (
-      <div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 overflow-hidden group cursor-pointer">
-        <div 
+<div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-shadow duration-300 overflow-hidden group cursor-pointer">        <div 
           className="p-6 h-full flex flex-col"
           onClick={() => {
             setSelectedPlant(plant);
@@ -672,10 +734,9 @@ const PlantShop = () => {
         >
           <div className="relative mb-4">
             <img 
-              src={plant.image?.startsWith('http') ? plant.image : `http://localhost:5000${plant.image}` || '/images/placeholder.jpg'}
+              src={plant.image?.startsWith('http') ? plant.image : `http://localhost:5002${plant.image}` || '/images/placeholder.jpg'}
               alt={plant.name}
-              className="w-full h-48 object-cover rounded-xl transition-transform duration-500 group-hover:scale-110"
-            />
+className="w-full h-48 object-cover rounded-xl"            />
             {plant.discount > 0 && (
               <div className="absolute top-3 right-3 bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg animate-pulse">
                 -{plant.discount}%
@@ -717,20 +778,25 @@ const PlantShop = () => {
             </div>
 
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                addToCart(plant);
-              }}
-              disabled={plant.stock === 0}
-              className={`w-full py-3 px-4 font-bold text-sm rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2 ${
-                plant.stock === 0
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 shadow-lg hover:shadow-xl'
-              }`}
-            >
-              <ShoppingCart size={16} />
-              {plant.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-            </button>
+  onClick={(e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (isAdding || plant.stock === 0) return;
+    
+    setIsAdding(true);
+    addToCart(plant);
+    setTimeout(() => setIsAdding(false), 500);
+  }}
+  disabled={plant.stock === 0 || isAdding}
+  className={`w-full py-3 px-4 font-bold text-sm rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${
+    plant.stock === 0 || isAdding
+      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+      : 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 shadow-lg hover:shadow-xl'
+  }`}
+>
+  <ShoppingCart size={16} />
+  {isAdding ? 'Adding...' : plant.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+</button>
           </div>
         </div>
       </div>
@@ -770,7 +836,7 @@ const PlantShop = () => {
                 <div key={item._id} className="bg-white p-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100">
                   <div className="flex items-center gap-4">
                     <img 
-                      src={item.image?.startsWith('http') ? item.image : `http://localhost:5000${item.image}` || '/images/placeholder.jpg'}
+                      src={item.image?.startsWith('http') ? item.image : `http://localhost:5002${item.image}` || '/images/placeholder.jpg'}
                       alt={item.name}
                       className="w-16 h-16 object-cover rounded-xl border-2 border-gray-200"
                     />
@@ -893,8 +959,7 @@ const PlantShop = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
-      {/* Header */}
+<div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 relative z-50">      {/* Header */}
       <header className="bg-white shadow-xl sticky top-0 z-50 border-b-4 border-green-500">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
@@ -947,77 +1012,84 @@ const PlantShop = () => {
       <div className="bg-white border-b border-gray-200 shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Search Plants</label>
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type="text"
-                  placeholder="Search for plants..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-green-500 focus:outline-none transition-colors duration-200 text-lg"
-                />
-              </div>
-            </div>
+  {/* Search */}
+  <div>
+    <label className="block text-sm font-bold text-gray-700 mb-2">Search Plants</label>
+    <div className="relative">
+      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+      <input
+        type="text"
+        placeholder="Search for plants..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-green-500 focus:outline-none transition-colors duration-200 text-lg"
+      />
+    </div>
+  </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-green-500 focus:outline-none transition-colors duration-200 text-lg"
-              >
-                <option value="all">All Categories</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-            </div>
+  {/* Category */}
+  <div>
+    <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
+    <select
+      value={selectedCategory}
+      onChange={(e) => setSelectedCategory(e.target.value)}
+      className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-green-500 focus:outline-none transition-colors duration-200 text-lg"
+    >
+      <option value="all">All Categories</option>
+      {categories.map(cat => (
+        <option key={cat} value={cat}>
+          {cat.charAt(0).toUpperCase() + cat.slice(1)}
+        </option>
+      ))}
+    </select>
+  </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Sort By</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-green-500 focus:outline-none transition-colors duration-200 text-lg"
-              >
-                <option value="name">Name (A-Z)</option>
-                <option value="price_low">Price (Low to High)</option>
-                <option value="price_high">Price (High to Low)</option>
-                <option value="popular">Most Popular</option>
-                <option value="newest">Newest First</option>
-              </select>
-            </div>
-          </div>
+  {/* Sort By */}
+  <div>
+    <label className="block text-sm font-bold text-gray-700 mb-2">Sort By</label>
+    <select
+      value={sortBy}
+      onChange={(e) => setSortBy(e.target.value)}
+      className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-green-500 focus:outline-none transition-colors duration-200 text-lg"
+    >
+      <option value="name">Name (A-Z)</option>
+      <option value="price_low">Price (Low to High)</option>
+      <option value="price_high">Price (High to Low)</option>
+      <option value="popular">Most Popular</option>
+      <option value="newest">Newest First</option>
+    </select>
+  </div>
+</div>
+
         </div>
       </div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-6">
-          <p className="text-gray-600 text-lg">
-            Showing <span className="font-semibold text-gray-800">{plants.length}</span> plants 
-            {selectedCategory !== 'all' && (
-              <span> in <span className="font-semibold text-green-600">{selectedCategory}</span></span>
-            )}
-          </p>
-        </div>
+     {/* Main Content */}  
+<main className="max-w-7xl mx-auto px-6 py-8">
+  <div className="mb-6">
+    <p className="text-gray-600 text-lg">
+      Showing <span className="font-semibold text-gray-800">{filteredPlants.length}</span> plants 
+      {selectedCategory !== 'all' && (
+        <span> in <span className="font-semibold text-green-600">{selectedCategory}</span></span>
+      )}
+    </p>
+  </div>
 
-        {plants.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">🌱</div>
-            <h3 className="text-2xl font-bold text-gray-600 mb-4">No plants found</h3>
-            <p className="text-gray-500 text-lg">Try adjusting your search or filter criteria</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {plants.map(plant => (
-              <PlantCard key={plant._id} plant={plant} />
-            ))}
-          </div>
-        )}
-      </main>
+  {filteredPlants.length === 0 ? (
+    <div className="text-center py-20">
+      <div className="text-6xl mb-4">🌱</div>
+      <h3 className="text-2xl font-bold text-gray-600 mb-4">No plants found</h3>
+      <p className="text-gray-500 text-lg">Try adjusting your search or filter criteria</p>
+    </div>
+  ) : (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+      {filteredPlants.map(plant => (
+        <PlantCard key={plant._id} plant={plant} />
+      ))}
+    </div>
+  )}
+</main>
+
 
       {/* Components */}
       <CartSidebar />

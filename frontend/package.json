@@ -2,6 +2,7 @@
   "name": "plantifyset",
   "version": "0.1.0",
   "private": true,
+  "proxy": "http://localhost:5002",
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.11",
     "@tensorflow/tfjs": "^4.22.0",

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import '../styles/MainDashboardStyles.css';
 import '../styles/MainDashboardAnimations.js';
 import { useNavigate } from 'react-router-dom';
@@ -20,7 +20,8 @@ import {
   X,
   Package,
   BarChart3,
-  Truck
+  Truck,
+  Shield
 } from 'lucide-react';
 
 const MainDashboard = () => {
@@ -29,12 +30,30 @@ const MainDashboard = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalType, setAuthModalType] = useState('login');
   const [selectedUserType, setSelectedUserType] = useState('user'); // Track which type was selected
+  const [showDrivesDropdown, setShowDrivesDropdown] = useState(false);
+  const [plantationDrives, setPlantationDrives] = useState([]);
+
+  useEffect(() => {
+    const fetchDrives = async () => {
+      try {
+        const res = await fetch(`${process.env.REACT_APP_API_BASE || ''}/api/drives`);
+        if (!res.ok) return; // fail silently in header
+        const data = await res.json();
+        setPlantationDrives(data.slice(0, 5)); // show top 5 upcoming
+      } catch (e) {
+        // ignore header fetch errors
+      }
+    };
+    fetchDrives();
+  }, []);
 
   const handleLoginClick = (type) => {
     if (isAuthenticated) {
       // User is already logged in, redirect based on their role or selected type
       if (user.role === 'nursery' || type === 'nursery') {
         navigate('/nursery');
+      } else if (user.role === 'admin' || type === 'admin') {
+        navigate('/admin/drives');
       } else {
         navigate('/user');
       }
@@ -132,14 +151,36 @@ const MainDashboard = () => {
               <Leaf className="h-8 w-8 text-green-600" />
               <h1 className="text-2xl font-bold text-gray-900">Plantify</h1>
             </div>
-            <div className="flex space-x-3">
+            <div className="flex space-x-3" style={{ position: 'relative' }}>
               {isAuthenticated ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                   <span style={{ color: '#666' }}>Welcome, {user.name}</span>
                   <button
+                    onClick={() => setShowDrivesDropdown((prev) => !prev)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      backgroundColor: '#f1f5f9',
+                      color: '#065f46',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Calendar className="h-4 w-4" />
+                    <span>Plantation Drives</span>
+                  </button>
+                  <button
                     onClick={() => {
-                      if (user.role === 'nursery') navigate('/nursery');
-                      else navigate('/user');
+                      if (user.role === 'admin') {
+                        navigate('/admin/drives');
+                      } else if (user.role === 'nursery') {
+                        navigate('/nursery');
+                      } else {
+                        navigate('/user');
+                      }
                     }}
                     style={{
                       padding: '8px 16px',
@@ -152,6 +193,21 @@ const MainDashboard = () => {
                   >
                     Go to Dashboard
                   </button>
+                  {user.role === 'admin' && (
+                    <button
+                      onClick={() => navigate('/admin/drives')}
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: '#16a34a',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Admin Panel
+                    </button>
+                  )}
                   <button
                     onClick={logout}
                     style={{
@@ -165,6 +221,78 @@ const MainDashboard = () => {
                   >
                     Logout
                   </button>
+                  {showDrivesDropdown && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '60px',
+                        right: '0',
+                        width: '320px',
+                        background: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '10px',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
+                        overflow: 'hidden',
+                        zIndex: 50
+                      }}
+                      onMouseLeave={() => setShowDrivesDropdown(false)}
+                    >
+                      <div style={{ padding: '10px 14px', backgroundColor: '#f8fafc', borderBottom: '1px solid #e5e7eb' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#065f46', fontWeight: 600 }}>
+                          <Calendar className="h-4 w-4" />
+                          Upcoming Plantation Drives
+                        </div>
+                      </div>
+                      <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                        {plantationDrives.map((d) => (
+                          <button
+                            key={d._id}
+                            onClick={() => {
+                              setShowDrivesDropdown(false);
+                              navigate(`/drives`);
+                            }}
+                            style={{
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '12px 14px',
+                              background: 'white',
+                              border: 'none',
+                              borderBottom: '1px solid #f1f5f9',
+                              cursor: 'pointer'
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'white')}
+                          >
+                            <div style={{ fontWeight: 600, color: '#111827' }}>{d.title}</div>
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{new Date(d.date).toLocaleDateString()} • {d.location}</div>
+                          </button>
+                        ))}
+                        {plantationDrives.length === 0 && (
+                          <div style={{ padding: '14px', color: '#6b7280', fontSize: '14px' }}>No drives available.</div>
+                        )}
+                      </div>
+                      <div style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc' }}>
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>Want to organize a drive?</span>
+                        <button
+                          onClick={() => {
+                            setShowDrivesDropdown(false);
+                            navigate('/drives');
+                          }}
+                          style={{
+                            padding: '6px 10px',
+                            backgroundColor: '#16a34a',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          Create / Join
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
@@ -205,6 +333,25 @@ const MainDashboard = () => {
                   >
                     <Store className="h-4 w-4" />
                     <span>Nursery Login</span>
+                  </button>
+                  <button
+                    onClick={() => handleLoginClick('admin')}
+                    className="btn btn-admin flex items-center space-x-2 px-4 py-2 rounded-lg"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 16px',
+                      backgroundColor: '#2563eb',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: '500'
+                    }}
+                  >
+                    <Shield className="h-4 w-4" />
+                    <span>Admin Login</span>
                   </button>
                 </>
               )}
